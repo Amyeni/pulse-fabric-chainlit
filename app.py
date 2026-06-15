@@ -6,7 +6,7 @@ from openai import OpenAI
 
 load_dotenv()
 
-MODEL_NAME = os.getenv("MODEL_NAME", "pulse_fabric")
+MODEL_NAME = os.getenv("MODEL_NAME", "openrouter/free")
 API_BASE = os.getenv("API_BASE")
 API_KEY = os.getenv("API_KEY")
 
@@ -394,4 +394,4 @@ async def main(message: cl.Message):
     request_data = await mature_request_loop(request_data)
 
     await show_dashboard(request_data)
-    await final_workflow(request_data)git
+    await final_workflow(request_data)
