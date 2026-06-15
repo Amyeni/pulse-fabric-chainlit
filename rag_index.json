@@ -1,0 +1,802 @@
+[
+  {
+    "source": "guardrail.docx",
+    "title": "1. Amaç",
+    "text": "Bu doküman, Vodafone Türkiye bünyesinde veri mimarisinin tasarımı, uygulanması ve kullanımıyla ilgili zorunlu prensipleri, kuralları ve sınırları tanımlar.\nGuardrail politikası; veri kalitesini, güvenliğini ve yönetilebilirliğini güvence altına alırken kurumsal büyüme ve inovasyon hedeflerini destekleyen bir çerçeve oluşturur. Tüm veri mühendisleri, analistler ve veri platformunu kullanan paydaşlar bu politikaya uymakla yükümlüdür.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Bu politikanın amaçları:",
+    "text": "Veri platformlarında tutarlılık, güvenilirlik ve ölçeklenebilirlik sağlamak.\nKurumsal veri varlıklarının bütünlüğünü korumak.\nGüvenilir analitik, raporlama ve operasyonel veri kullanımını mümkün kılmak.\nKontrolsüz mimari sapmaların önüne geçmek.\nHangi ekibin hangi platforma, hangi taleple gideceğini net olarak tanımlamak.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Bu politika aşağıdakiler için geçerlidir:",
+    "text": "Tüm veri platformları ODS, PRIME (Mobil DWH), VFNETDW(FIXEDWH),PEP_CLDS(Incentro),MIS, Data Lakehouse (Ozone-Iceberg) ve Cloudera (Kaizen-HDFS) dahil.\nYapılandırılmış, yarı yapılandırılmış ve yapılandırılmamış veriler.\nBI, ileri analitik, AI/ML ve operasyonel sistemler dahil tüm veri tüketicileri.\nVeri entegrasyon süreçleri, ETL/ELT akışları ve API katmanları.\nTüm iç ekipler, tedarikçiler ve iş ortakları.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "3. Mimari Yönetişim ve Uygulama",
+    "text": "Bu politikaya uyum zorunludur.\nMimari sapmalar için resmi istisna onayı gereklidir.\nUyumlu olmayan çözümler canlı ortama alınamayabilir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "3.2 Uygulama Mekanizmaları",
+    "text": "Tüm mimari değişiklikler Veri Mimarisi Kurulu onayından geçmek zorundadır.\nGuardrail ihlalleri otomatik izleme araçları ile tespit edilip ve raporlamalıdır.\nKritik ihlallerde üretim ortamına geçiş durdurulur.\nYıllık denetim ve politika güncelleme döngüsü uygulanmalıdır.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "3.4 Mimari Kontrol Gerektiren Durumlar",
+    "text": "Aşağıdaki durumlarda mimari kontrol süreci zorunludur.\nGerekli görülen senaryolarda konu Veri Mimarisi Kurulu veya BT Mimari Kurulu (ITAB) değerlendirmesine eskale edilir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Guardrail Kuralları",
+    "text": "1.\tArchitecture Review gerektiren değişiklikler production ortamına alınmadan önce mimari onay sürecinden geçmelidir.\n2.\tMimari review süreci tamamlanmadan canlı geçiş yapılamaz.\n3.\tReview çıktıları denetlenebilir şekilde kayıt altında tutulmalıdır.\n4.\tKritik mimari sapmalar Veri Mimarisi Kurulu değerlendirmesine eskale edilir.\n5.\tVendor lock-in riski taşıyan kararlar ITAB değerlendirmesine sunulmalıdır.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "4. Yol Gösterici Mimari Prensipler",
+    "text": "Aşağıdaki prensipler tartışmasızdır ve tüm mimari kararların temelini oluşturur.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "5.1 Veri Ürünü Tanımı",
+    "text": "Veri ürünü; belirli bir iş ihtiyacını karşılamak amacıyla üretilen, sahibi tanımlı, kalite kriterleri belirlenmiş, tekrar kullanılabilir ve yönetilebilir veri varlığıdır.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "5.2 Veri Ürünü Guardrail Kuralları",
+    "text": "Veri ürünleri domain bazlı tasarlanmalıdır.\nAynı KPI veya metriği üreten mükerrer veri ürünleri oluşturulmamalıdır.\nVeri ürünleri metadata ve katalog kaydı olmadan yayınlanamaz.\nVeri kalite ve güvenlik kontrolleri zorunludur.\nLineage ve veri bağımlılıkları izlenebilir olmalıdır.\nVeri ürünleri naming convention standartlarına uygun olmalıdır.\nSchema değişiklikleri kontrollü yönetilmelidir.\nDeprecated veri ürünleri katalog üzerinden işaretlenmelidir.\nVeri ürünleri audit ve observability kapsamında izlenebilir olmalıdır.\nSahibi tanımlanmayan veri ürünleri canlıya alınamaz.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "6. Kurumsal Veri Platformu Katmanları",
+    "text": "Vodafone Türkiye veri platformları yedi ana katmandan oluşur. Her katmanın belirli sorumlulukları, guardrail kuralları ve katmanlar arası geçiş koşulları vardır.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Amaç",
+    "text": "Kaynak sistemlerin near real-time replikasyonu; operasyonel veri ihtiyaçlarına hızlı erişim.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Guardrail Kuralları",
+    "text": "Teknik harmonizasyon dışında iş mantığı içermez.\nKPI üretilemez; kurumsal raporlama için doğrudan BI tüketimi yapılamaz.\nTarihsel yeniden yapılandırma yapılamaz.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Amaç",
+    "text": "İşe hizalı, kürate edilmiş analitik veri; zaman boyutlu ve tarihsel kayıt.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Guardrail Kuralları",
+    "text": "Resmi kurumsal raporlama ve KPI'lar yalnızca buradan üretilir.\nZaman boyutlu ve tarihsel veri tutulur; metrik tanımları merkezi olarak yönetilir.\nŞema değişiklikleri Komite onayı gerektirir; geriye dönük uyumluluk zorunludur.\nDeğişiklikler veri mimarisi onayına tabidir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Amaç",
+    "text": "Ham, yarı kürate ve kürate edilmiş ve keşif amaçlı verilerin saklanması ve işlenmesi.\nGuardrail Kuralları.\nHam veri değişmeden saklanmalıdır; ham bölgeye doğrudan dış erişim yasaktır.\nApache Iceberg metadata formatı zorunludur.\nAnalitik amaçlı kullanım sadece Gold katmandan yapılabilir.\nLakehouse'a işlem amacı ve çıktı hedefi önceden tanımlanmış olmalı.\nDeğişiklikler veri mimarisi onayına tabidir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Amaç",
+    "text": "Büyük ölçekli batch işlem ve makine öğrenmesi iş yükleri için dağıtık işlem platformu.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Guardrail Kuralları",
+    "text": "Üretim iş yükleri kaynak kota sınırlarına tabidir; plansız kaynak tüketimi otomatik durdurulur.\nModel eğitimi için kullanılan veri setleri katalogda kayıtlı olmalıdır.\nÜretim ortamına çıkan ML modelleri mimari inceleme sürecinden geçmelidir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Amaç",
+    "text": "Prim ve teşvik süreçlerine ait hesaplama,mutabakat ve raporlama platformudur.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Guardrail Kuralları",
+    "text": "Yalnızca prim ve teşvik süreçlerine ait veri akışları bu katmana yönlendirilebilir; genel analitik veya raporlama iş yükleri kabul edilmez.\nIncentro dışı sistemler bu katmanı doğrudan tüketemez.\nVeri modeli değişiklikleri teşvik süreci sahipleri ve veri mimarisi onayına tabidir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Amaç",
+    "text": "• Tüm kaynak sistemlerden gelen finansal verilerin mutabakatının yapıldığı platformdur.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Guardrail Kuralları",
+    "text": "Yalnızca finansal raporlama kapsamındaki veri akışları bu katmana yönlendirilebilir.\nFinansal veri çıktıları denetim izine sahip olmalı; yetkisiz veri akışına izin verilmez.\nŞema ve model değişiklikleri finans birimi ve veri mimarisi ortak onayına tabidir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Amaç",
+    "text": "VFNET (Sabit internet altyapısı) kaynaklı tüm veri akışlarının (abone, şebeke, operasyon vb.) merkezi deposu olarak hizmet vermek.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Guardrail Kuralları",
+    "text": "Bu katmana yalnızca VFNET (sabit internet iştiraki) kaynaklı veri akışları yönlendirilebilir; mobil şebeke veya diğer Vodafone TR kaynaklı veriler buraya taşınamaz.\nVFNET verilerinin Vodafone TR ana platformlarında (PRIME, ODS vb.) tüketilmesi gerektiğinde bu katman üzerinden entegrasyon sağlanmalıdır.\nVeri paylaşımı için iki şirket arasında geçerli bir veri paylaşım anlaşması ve güvenlik onayı zorunludur.\nŞema ve model değişiklikleri hem VFNET veri mimarisi onayına tabidir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "6.8 Big Data Platformlarının Hedef Mimari Konumlandırması",
+    "text": "Aşağıdaki tablo big data platformu katmanlarının yeni data lakehouse mimarisindeki konumlarını özetlemek amacıyla eklenmiştir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "7.2 Zonlama Yapısı (Data Lakehouse Hedef Mimari)",
+    "text": "Not: Data Platform Team tek bir ekip değildir. Bu ekip Data Tribe içinde yer almayan capability ekiplerinin developerlarından oluşur. Amaç ham veriyi tekil olarak taşımak ve bunun kontrolünün merkezi olarak yapılmasını sağlamaktır.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "7.4 Schema Evolution ve Data Contract Kuralları",
+    "text": "Kurumsal veri platformlarında schema değişiklikleri kontrollü şekilde yönetilmelidir. Schema değişiklikleri downstream sistemleri etkilemeyecek şekilde tasarlanmalıdır.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Guardrail Kuralları:",
+    "text": "Schema değişiklikleri versiyonlanmalıdır.\nBreaking schema(eski sistemi bozacak) değişiklikleri Architecture sign-off gerektirir.\nBackward compatible(eski sistemi bozmayan) değişiklikler otomatik onay sürecine tabi olabilir.\nKolon silme işlemleri yalnızca deprecation(kontrollü silme prosedürü) süreci sonrası yapılabilir.\nIceberg tablolarında schema evolution native özellikleri kullanılmalıdır.\nSchema değişiklikleri metadata katalog sisteminde otomatik olarak güncellenmelidir.\nStreaming veri schema değişiklikleri schema registry üzerinden yönetilmelidir.\nContract tanımı olmayan dataset’ler production ortamında publish edilemez.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Data Contract minimum aşağıdaki alanları içerir:",
+    "text": "Field name / Type / Nullability:\nAlanın teknik adı, veri tipi ve boş (NULL) değer alıp alamayacağını tanımlar; şemanın teknik doğruluğu ve tutarlılığı için zorunludur.\nSemantik Tanım:\nAlanın iş anlamını, nasıl üretildiğini ve neyi temsil ettiğini açıklar; farklı ekiplerin veriyi aynı şekilde yorumlamasını sağlar.\nPrimary Key:\nKaydı benzersiz olarak tanımlayan alan(lar)dır; upsert, CDC ve veri bütünlüğü için zorunludur.\nUpdate Frequency:\nVerinin ne sıklıkla güncellendiğini (ör. gerçek zamanlı, saatlik, günlük) belirtir; SLA ve tüketici beklentilerinin doğru kurulmasını sağlar.\nSLA:\nVeri tazeliği, erişilebilirlik ve gecikme beklentilerini tanımlar; üretici ve tüketici arasındaki operasyonel taahhüttür.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "7.5 Streaming Veri Guardrail Kuralları",
+    "text": "Streaming veri platformları kurumsal veri mimarisinin ayrılmaz bir parçasıdır ve event-driven veri işleme senaryoları için standartlaştırılmış kullanım gerektirir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Guardrail Kuralları:",
+    "text": "Streaming ingestion yalnızca onaylı Kafka topic’leri üzerinden yapılmalıdır.\nHer streaming topic için owner atanmalıdır.\nTopic retention süresi veri sınıflandırmasına göre belirlenmelidir.\nStreaming pipeline’lar schema registry entegrasyonu olmadan production ortamına alınamaz.\nStreaming pipeline’lar latency SLA tanımı içermelidir.\nReplay gereksinimleri topic retention politikasına göre planlanmalıdır.\nStreaming veri doğrudan BI araçları tarafından tüketilemez.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "7.6 Katman Bazlı Veri Saklama Politikası",
+    "text": "Kurumsal veri platformlarında veri saklama süreleri veri zonuna göre farklılık gösterir. Retention politikaları veri sınıflandırma politikası ile uyumlu olmalıdır.\nPII veri retention süresi KVKK uyumlu olmalıdır.\nRetention süresi dolan dataset’ler otomatik arşivleme sürecine alınmalıdır.\nRetention politikaları veri sahibi tarafından onaylanmalıdır.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "7.7 Event Schema Yönetim Kuralları",
+    "text": "Event-driven mimarilerde schema yönetimi merkezi olarak yapılmalıdır.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Guardrail Kuralları:",
+    "text": "Tüm event schema’ları schema registry sisteminde kayıtlı olmalıdır.\nVersioned schema kullanımı zorunludur.\nBackward compatibility default policy olarak uygulanmalıdır.\nBreaking change yalnızca mimari onay ile yapılabilir.\nEvent schema metadata katalog sisteminde görünür olmalıdır.\nTopic-level schema ownership tanımlı olmalıdır.\nEvent payload formatı Avro veya JSON Schema olmalıdır.\nStreaming consumer sistemleri schema evolution desteklemek zorundadır.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "8. BI ve Non-BI Kullanım Politikası",
+    "text": "Business Intelligence araçları (Tableau, Power BI vb.) yalnızca GOLD (Küratörlü Zon) ve PRIME VID, Opermart katmanlarından beslenir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "8.1 BI Kullanım Alanları",
+    "text": "KPI raporları.\nDashboard ve scorecard'lar.\nYönetim ve üst yönetim raporları.\nAnalitik içgörü üretimi.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "8.2 Non-BI Kullanım Alanları",
+    "text": "Faturalama ve charging.\nFinansal mutabakat.\nFraud ve denetim analizleri.\nRegulasyon raporları.\nOperasyonel kontrolleri.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "8.3 Guardrail Kuralları",
+    "text": "BI raporları ham veriye doğrudan bağlanamaz.\nKritik kurumsal raporlar PRIME DWH'dan beslenmelidir.\nSelf-servis BI kullanımı onaylı veri domainleriyle sınırlıdır; rapor sahipliği ve güncelliği data steward tarafından izlenir.\nBI platformları non-BI amaçlarla kullanılamaz. (İstisnalar onaya tabi olmak zorundadır.)\nNon-BI use case'ler raporlama katmanlarına bağımlı olamaz.\nVeri bilimi ve ML iş yükleri Cloudera ve Lakehouse platformlarını kullanır.\nGerçek zamanlı analitik için streaming mimarisi kullanımı zorunludur.\nTalep belirsizlik durumlarında non-BI olarak sınıflandırılır.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "8.4 Semantic Layer Yönetim Kuralları",
+    "text": "Semantic layer kurumsal KPI üretiminin tek otorite katmanıdır.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Guardrail Kuralları:",
+    "text": "KPI tanımları semantic layer üzerinden yönetilmelidir.\nAynı KPI farklı semantic layer’larda tekrar tanımlanamaz.\nKPI değişiklikleri Architecture sign-off gerektirir.\nSemantic layer dataset’leri catalog sisteminde kayıtlı olmalıdır.\nSemantic layer değişiklikleri backward compatibility prensibine uygun olmalıdır.\nSemantic layer dışından KPI üretimi kurumsal raporlama için kullanılamaz.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Her kurumsal veri seti için üç zorunlu rol tanımlanmıştır:",
+    "text": "Veri Sahibi (Data Owner) — iş sorumluluğu.\nVeri Sorumlusu (Data Steward) — tanım ve kalite.\nVeri Saklayıcısı (Data Custodian) — teknik yönetim.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Guardrail Kuralları",
+    "text": "Sahipliği tanımlı olmayan veri setleri kurumsal katmanlara terfi edemez. (VID, Gold Layer)\nSahiplik bilgileri kayıtlı ve denetlenebilir olmalıdır.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "9.2 Mimari Karar Yetki Matrisi",
+    "text": "Aşağıdaki matris, kurumsal veri mimarisi kapsamındaki kritik karar noktalarında hangi rolün onay, danışmanlık veya uygulama sorumluluğuna sahip olduğunu tanımlar.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Guardrail Kuralları",
+    "text": "1.\tİş anlamını etkileyen tüm değişikliklerde Veri Sahibi onayı zorunludur.\n2.\tKurumsal mimariyi etkileyen tüm değişikliklerde Veri Mimarı onayı zorunludur.\n3.\tYeni teknoloji veya vendor kararları ITAB değerlendirmesine tabidir.\n4.\tMimari guardrail istisnaları kayıt altına alınmalı ve denetlenebilir olmalıdır.\n5.\tYetki matrisi dışında kalan durumlarda Veri Mimarisi Kurulu hakem rolü üstlenir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "10.1 Veri Kalitesi Guardrail'ları",
+    "text": "Kritik veri varlıkları için minimum kalite skoru %99.9 olarak belirlenmiştir.\nKalite skoru %90'ın altına düşen veri setleri otomatik olarak karantinaya alınır.\nKalite kuralları kod olarak tanımlanır ve versiyon kontrol sisteminde tutulur.\nKalite metrikleri gerçek zamanlı izleme dashboardlarında görünür.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "10.2 Lineage Zorunlulukları",
+    "text": "Kaynaktan tüketiciye uçtan uca lineage sağlanmalıdır.\nTablo düzeyinde lineage minimum gereksinim; sütun düzeyi lineage kritik varlıklar için zorunludur.\nLineage bilgisi merkezi katalog sisteminde saklanır ve erişilebilir olur.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "10.3 Dokümantasyon Standartları",
+    "text": "Her veri varlığı için: sahip bilgisi, iş tanımı, güncelleme sıklığı, kalite kuralları.\nHer pipeline için: kaynak-hedef bilgisi, dönüşüm mantığı, çalışma zamanı ve bağımlılıklar.\nİş ve teknik metadata zorunludur.\nDocumentation-first yaklaşımı: Dokümantasyon, veri varlığından önce tamamlanmalıdır.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "10.4 Veri Gözlemlenebilirliği Guardrail Kuralları",
+    "text": "Kurumsal veri platformlarında tüm pipeline’lar observability kapsamına alınmalıdır.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Guardrail Kuralları:",
+    "text": "Pipeline failure monitoring zorunludur.\nDataset freshness metrikleri izlenmelidir.\nVolume anomaly detection uygulanmalıdır.\nKritik dataset’ler için Schema drift detection uygulanmalıdır. (schema registry ile)\nKritik dataset’ler için data completeness monitoring zorunludur. (record count,null ratio,madotary field check)\nObservability dashboard’ları platform bazında erişilebilir olmalıdır.\nKritik dataset’ler için alert mekanizması tanımlı olmalıdır.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "10.5 Veri Tazelik ve SLA Kuralları",
+    "text": "Kurumsal veri setleri SLA tanımı olmadan production ortamında publish edilemez.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Guardrail Kuralları:",
+    "text": "Dataset türlerine göre minimum SLA tanımları aşağıdaki şekilde olmalıdır.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Ek kurallar:",
+    "text": "SLA ihlalleri otomatik olarak raporlanmalıdır.\nSLA tanımı olmayan dataset kurumsal veri olarak kabul edilmez.\nSLA değişiklikleri veri sahibi onayına tabidir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "11.2 Güvenlik Guardrail'ları",
+    "text": "Veri sınıflandırması tüm platformlarda uygulanmalıdır.\nYetkilendirme en az yetki (least privilege) prensibine göre yapılır.\nKişisel ve hassas veriler yasal düzenlemelere ve Vodafone grup politikalarına uygun olmalıdır.\nMaskeleme ve anonimleştirme kuralları zorunludur.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "11.3 PII ve KVKK Guardrail'ları",
+    "text": "Kişisel veri ham zon'da anonimleştirilmeden analitik amaçlı kullanılamaz.\nPII verisi içeren her varlık KVKK kaydında tanımlanmış olmalıdır.\nYurt dışına veri transferi yasal çerçeve ve Komite onayı gerektirir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "11.4 Veri Erişim Modeli Guardrail Kuralları",
+    "text": "Kurumsal veri erişimleri least privilege prensibine göre yönetilmelidir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Guardrail Kuralları:",
+    "text": "Role-based access control zorunludur.\nColumn-level masking PII dataset’lerde uygulanmalıdır.\nRow-level filtering domain bazlı uygulanmalıdır.\nCross-domain veri erişimleri onaya tabidir.\nExternal data sharing security review gerektirir.\nAccess log’ları merkezi olarak saklanmalıdır.\nPrivileged access yıllık olarak gözden geçirilmelidir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "12. Kurumsal Teknolojiler ve Araç Bağımsızlığı",
+    "text": "Tool Independence prensibi gereği platform tasarımı belirli bir vendor'a bağımlı olmamalıdır.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Guardrail Kuralları",
+    "text": "Mimari kararlar araç bazlı alınamaz; araçlar mimariye hizmet eder, mimari araçlara değil.\nİş mantığı taşınabilir ve dokümante olmalıdır.\nVendor'a özgü format veya özellik kullanan çözümler için portability analizi zorunludur.\nAçık kaynak ve açık standartlar (Apache Iceberg, Parquet, Avro vb.) tercih edilir.\nYeni vendor veya araç kabulü Mimari Komite onayı ve değerlendirme gerektirir.\nSLA, destek ve lisans süresi biten araçlar için geçiş planı önceden hazırlanmalıdır.\nVendor lock-in aktif olarak önlenmelidir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "12.1 Onaylı Teknoloji Yığını",
+    "text": "Not: Json, CSV vb. veri formatları yalnızca ingestion ve raw veri katmanlarında kullanılabilir. Veri silver ve gold katmanlara taşınırken yukardaki dosya formatlarından biri seçilmelidir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "12.3 Storage ve Compute Kullanım",
+    "text": "Kurumsal veri platformlarında storage ve compute kaynakları kontrollü kullanılmalıdır.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "Guardrail Kuralları:",
+    "text": "Compute quota platform bazında tanımlı olmalıdır.\nPlansız resource consumption otomatik olarak sınırlandırılmalıdır.\nIdle dataset’ler archive edilmelidir.\nTemporary dataset’ler retention policy kapsamında temizlenmelidir.\nStorage tiering politikaları uygulanmalıdır.\nBüyük hacimli dataset’ler lifecycle policy kapsamında yönetilmelidir.\nCompute-intensive workload’lar execution platformuna uygun katmanda çalıştırılmalıdır.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "13.1 Senaryo Bazlı Talep Yönlendirme Matrisi",
+    "text": "İş birimlerinden gelen talepler aşağıdaki senaryo haritasına göre yönlendirilir. Doğru ekip seçimi; platform kirliliğini, tekrar çalışmayı ve guardrail ihlallerini önler.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "13.2 Veri Türü Bazlı Platform Yönlendirme Matrisi",
+    "text": "Her veri türü için doğru platform aşağıda tanımlanmıştır. Bu matris, hangi verinin nereye gideceğini netleştirir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "14. İstisna Yönetimi",
+    "text": "Bu politikada belirtilen guardrail kurallarından sapma gerektiren durumlar aşağıdaki prosedür ile yönetilir. İstisnalar geçici niteliktedir; resmi talep, iş gerekçesi ve bitiş tarihi zorunludur.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "15. Hedeflenen Yetkinlik Gelişim Alanları",
+    "text": "Bu bölümde yer alan maddeler mevcut guardrail politikasının hedeflenen olgunluk seviyesine ulaşabilmesi için planlanan kurumsal yetkinlik geliştirme alanlarını tanımlar. Amaç; veri yönetişimi, mimari kontrol ve operasyonel izlenebilirlik süreçlerini mümkün olduğunca standart, merkezi ve otomatik hale getirmektir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "15.1 Otomatik Guardrail Kontrolleri",
+    "text": "Kurumsal veri platformlarında guardrail ihlallerinin manuel kontroller yerine otomatik mekanizmalarla tespit edilmesi hedeflenmektedir. Schema uyumsuzluğu, lineage eksikliği, SLA ihlali, katalog kaydı eksikliği veya yetkisiz erişim gibi kritik ihlallerin CI/CD ve deployment süreçlerine entegre kontrol mekanizmalarıyla otomatik denetlenmesi beklenmektedir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "15.2 Merkezi Schema Registry Yapısı",
+    "text": "Tüm veri platformlarında kullanılan schema tanımlarının merkezi bir registry yapısı üzerinden yönetilmesi hedeflenmektedir. Streaming, batch ve veri paylaşım süreçlerinde schema versiyonlama, compatibility kontrolü ve contract doğrulamalarının ortak standartlarla yönetilmesi beklenmektedir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "15.3 Otomatik Lineage Toplama",
+    "text": "Kurumsal veri hareketlerinin uçtan uca lineage bilgisinin otomatik olarak oluşturulması hedeflenmektedir. Kaynak sistemden raporlama katmanına kadar veri akışlarının manuel müdahale olmadan merkezi katalog platformuna aktarılması ve veri bağımlılıklarının gerçek zamanlı izlenebilir hale getirilmesi beklenmektedir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "15.4 Merkezi SLA Monitoring",
+    "text": "Kurumsal veri setleri için SLA ve veri tazelik kontrollerinin merkezi observability altyapısı üzerinden izlenmesi hedeflenmektedir. SLA ihlali, gecikme, veri eksikliği ve freshness problemlerinin otomatik alarm mekanizmalarıyla ilgili ekip ve veri sahiplerine iletilmesi beklenmektedir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "15.5 Cross-platform Retention Enforcement",
+    "text": "Farklı veri platformlarında uygulanan retention politikalarının merkezi standartlarla yönetilmesi hedeflenmektedir. Hot/cold storage, arşivleme, silme ve KVKK uyumlu retention süreçlerinin tüm platformlarda ortak kontrol mekanizmalarıyla uygulanması beklenmektedir.",
+    "metadata": {}
+  },
+  {
+    "source": "guardrail.docx",
+    "title": "15.6 Governance Workflow Automation",
+    "text": "Veri yönetişimi süreçlerinin manuel operasyonlardan bağımsız, workflow tabanlı ve denetlenebilir şekilde işletilmesi hedeflenmektedir. Architecture sign-off, metadata onayı, DQ kontrolü, schema approval ve governance review süreçlerinin Jira, katalog ve CI/CD sistemleriyle entegre otomatik iş akışları üzerinden yürütülmesi beklenmektedir.",
+    "metadata": {}
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Customer",
+    "text": "Domain Name: Customer\nCategory: Master & Reference\nDefinition: Customer identity, type, relationships, usage\nSample Data: Customer ID, name, type, tariff, campaign\nData Owner: Marketing / Base Growth\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Customer",
+      "category": "Master & Reference",
+      "owner": "Marketing / Base Growth",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Channel",
+    "text": "Domain Name: Channel\nCategory: Master & Reference\nDefinition: Channel interaction and authorization info\nSample Data: Access channel types, authorization\nData Owner: Marketing\nRelated Sub-Team: Marketing & Channel",
+    "metadata": {
+      "domain_name": "Channel",
+      "category": "Master & Reference",
+      "owner": "Marketing",
+      "team": "Marketing & Channel"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Product & Service",
+    "text": "Domain Name: Product & Service\nCategory: Master & Reference\nDefinition: Product technical/commercial/pricing structures\nSample Data: Tariffs, bundles, campaigns\nData Owner: Product & Solutions / Base Growth\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Product & Service",
+      "category": "Master & Reference",
+      "owner": "Product & Solutions / Base Growth",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Employee",
+    "text": "Domain Name: Employee\nCategory: Master & Reference\nDefinition: Employee personal/performance/training info\nSample Data: Employee ID, role, training\nData Owner: Reward & Employee Relations\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Employee",
+      "category": "Master & Reference",
+      "owner": "Reward & Employee Relations",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Organizational Structure",
+    "text": "Domain Name: Organizational Structure\nCategory: Master & Reference\nDefinition: Org hierarchy and internal units\nSample Data: Org chart, reporting lines\nData Owner: Organizational Effectiveness & Tech HRBP\nRelated Sub-Team: Organizational Efficiency",
+    "metadata": {
+      "domain_name": "Organizational Structure",
+      "category": "Master & Reference",
+      "owner": "Organizational Effectiveness & Tech HRBP",
+      "team": "Organizational Efficiency"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Supplier & Partner",
+    "text": "Domain Name: Supplier & Partner\nCategory: Master & Reference\nDefinition: Supplier/partner descriptive info\nSample Data: Supplier names, contracts\nData Owner: Supply Chain\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Supplier & Partner",
+      "category": "Master & Reference",
+      "owner": "Supply Chain",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Chart of Accounts",
+    "text": "Domain Name: Chart of Accounts\nCategory: Master & Reference\nDefinition: Financial account classifications\nSample Data: Account codes, hierarchy\nData Owner: Finance Operations\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Chart of Accounts",
+      "category": "Master & Reference",
+      "owner": "Finance Operations",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Network Equipment",
+    "text": "Domain Name: Network Equipment\nCategory: Master & Reference\nDefinition: Physical network infrastructure\nSample Data: Base station ID, coverage\nData Owner: Network Operations / Development\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Network Equipment",
+      "category": "Master & Reference",
+      "owner": "Network Operations / Development",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Number Inventory",
+    "text": "Domain Name: Number Inventory\nCategory: Master & Reference\nDefinition: MSISDN/IMSI lifecycle allocation\nSample Data: SIM, IMSI status\nData Owner: Device Ops & Trade Marketing\nRelated Sub-Team: Terminal Dist & SCM",
+    "metadata": {
+      "domain_name": "Number Inventory",
+      "category": "Master & Reference",
+      "owner": "Device Ops & Trade Marketing",
+      "team": "Terminal Dist & SCM"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Reference",
+    "text": "Domain Name: Reference\nCategory: Master & Reference\nDefinition: Standard reference codes across systems\nSample Data: Currency codes, country codes\nData Owner: Data Governance Office\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Reference",
+      "category": "Master & Reference",
+      "owner": "Data Governance Office",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Contact Policy",
+    "text": "Domain Name: Contact Policy\nCategory: Master & Reference\nDefinition: Customer contact interaction rules\nSample Data: SMS/email contact policies\nData Owner: CX & UX Design\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Contact Policy",
+      "category": "Master & Reference",
+      "owner": "CX & UX Design",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Order",
+    "text": "Domain Name: Order\nCategory: Transactional\nDefinition: Order management transactions\nSample Data: Order status, delivery dates\nData Owner: Customer Operations\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Order",
+      "category": "Transactional",
+      "owner": "Customer Operations",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Network Usage",
+    "text": "Domain Name: Network Usage\nCategory: Transactional\nDefinition: Usage within subscribed tariffs\nSample Data: CDR, SMS usage, data usage\nData Owner: Network Operation Management\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Network Usage",
+      "category": "Transactional",
+      "owner": "Network Operation Management",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Complaint",
+    "text": "Domain Name: Complaint\nCategory: Transactional\nDefinition: Customer complaint records\nSample Data: Complaint content, resolution status\nData Owner: Customer Operations\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Complaint",
+      "category": "Transactional",
+      "owner": "Customer Operations",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Customer Service",
+    "text": "Domain Name: Customer Service\nCategory: Transactional\nDefinition: Call center interaction records\nSample Data: Call logs, agent interaction\nData Owner: Customer Operations\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Customer Service",
+      "category": "Transactional",
+      "owner": "Customer Operations",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Accounts Receivable & Payments",
+    "text": "Domain Name: Accounts Receivable & Payments\nCategory: Transactional\nDefinition: Billing collection tracking\nSample Data: Invoice payments, balances\nData Owner: Finance Operations\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Accounts Receivable & Payments",
+      "category": "Transactional",
+      "owner": "Finance Operations",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Billing",
+    "text": "Domain Name: Billing\nCategory: Transactional\nDefinition: Invoice generation data\nSample Data: Invoice number, billing period\nData Owner: Finance Operations\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Billing",
+      "category": "Transactional",
+      "owner": "Finance Operations",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Charging",
+    "text": "Domain Name: Charging\nCategory: Transactional\nDefinition: Charging process data\nSample Data: Charging records\nData Owner: Finance Operations\nRelated Sub-Team: Revenue Assurance",
+    "metadata": {
+      "domain_name": "Charging",
+      "category": "Transactional",
+      "owner": "Finance Operations",
+      "team": "Revenue Assurance"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Stock Device & Accessory Procurement",
+    "text": "Domain Name: Stock Device & Accessory Procurement\nCategory: Transactional\nDefinition: Inventory/logistics device transactions\nSample Data: Warehouse stock, device sales\nData Owner: VBTS / Device Ops & Trade Marketing\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Stock Device & Accessory Procurement",
+      "category": "Transactional",
+      "owner": "VBTS / Device Ops & Trade Marketing",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Reconciliation",
+    "text": "Domain Name: Reconciliation\nCategory: Transactional\nDefinition: Inter-operator reconciliation\nSample Data: Settlement amounts\nData Owner: Finance Operations\nRelated Sub-Team: Business Assurance & Commissions",
+    "metadata": {
+      "domain_name": "Reconciliation",
+      "category": "Transactional",
+      "owner": "Finance Operations",
+      "team": "Business Assurance & Commissions"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Digital Channel Transaction",
+    "text": "Domain Name: Digital Channel Transaction\nCategory: Transactional\nDefinition: Digital channel interaction logs\nSample Data: Login/session/channel usage\nData Owner: Digital Assets\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Digital Channel Transaction",
+      "category": "Transactional",
+      "owner": "Digital Assets",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Financial Planning",
+    "text": "Domain Name: Financial Planning\nCategory: Derived\nDefinition: Budget planning analytics\nSample Data: Financial planning reports\nData Owner: Financial Planning & Strategy\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Financial Planning",
+      "category": "Derived",
+      "owner": "Financial Planning & Strategy",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Sales",
+    "text": "Domain Name: Sales\nCategory: Derived\nDefinition: Sales contract/incentive analytics\nSample Data: Dealer contracts, commissions\nData Owner: Commercial Mgmt / Device Ops\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Sales",
+      "category": "Derived",
+      "owner": "Commercial Mgmt / Device Ops",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Marketing",
+    "text": "Domain Name: Marketing\nCategory: Derived\nDefinition: Campaign analytics & profitability\nSample Data: NPS, campaign performance\nData Owner: Marketing / Base Growth\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Marketing",
+      "category": "Derived",
+      "owner": "Marketing / Base Growth",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Regulatory",
+    "text": "Domain Name: Regulatory\nCategory: Derived\nDefinition: Compliance reporting datasets\nSample Data: Regulatory telecom reports\nData Owner: Regulatory Affairs\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Regulatory",
+      "category": "Derived",
+      "owner": "Regulatory Affairs",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Management Reporting",
+    "text": "Domain Name: Management Reporting\nCategory: Derived\nDefinition: Executive reporting KPIs\nSample Data: Market share, ARPU\nData Owner: Financial Planning & Strategy\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Management Reporting",
+      "category": "Derived",
+      "owner": "Financial Planning & Strategy",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Enterprise Risk",
+    "text": "Domain Name: Enterprise Risk\nCategory: Derived\nDefinition: Operational/enterprise risk metrics\nSample Data: Risk assessments\nData Owner: Corporate Security\nRelated Sub-Team: Business Resilience",
+    "metadata": {
+      "domain_name": "Enterprise Risk",
+      "category": "Derived",
+      "owner": "Corporate Security",
+      "team": "Business Resilience"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Revenue Assurance",
+    "text": "Domain Name: Revenue Assurance\nCategory: Derived\nDefinition: Revenue stream validations\nSample Data: Revenue streams/contracts\nData Owner: FinOps Core Solutions\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Revenue Assurance",
+      "category": "Derived",
+      "owner": "FinOps Core Solutions",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Customer Service Performance",
+    "text": "Domain Name: Customer Service Performance\nCategory: Derived\nDefinition: Service efficiency KPIs\nSample Data: AHT, FCR metrics\nData Owner: Customer Operations\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Customer Service Performance",
+      "category": "Derived",
+      "owner": "Customer Operations",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Network Capacity & Performance Mgmt",
+    "text": "Domain Name: Network Capacity & Performance Mgmt\nCategory: Derived\nDefinition: Network performance forecasting\nSample Data: Capacity utilization\nData Owner: NW Quality\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Network Capacity & Performance Mgmt",
+      "category": "Derived",
+      "owner": "NW Quality",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Digital Channel Performance",
+    "text": "Domain Name: Digital Channel Performance\nCategory: Derived\nDefinition: Digital analytics behavior logs\nSample Data: Heatmaps, page load metrics\nData Owner: Digital Assets\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Digital Channel Performance",
+      "category": "Derived",
+      "owner": "Digital Assets",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Tax",
+    "text": "Domain Name: Tax\nCategory: Derived\nDefinition: Tax reporting datasets\nSample Data: VAT/tax rates\nData Owner: Tax\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Tax",
+      "category": "Derived",
+      "owner": "Tax",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Fraud",
+    "text": "Domain Name: Fraud\nCategory: Derived\nDefinition: Fraud detection indicators\nSample Data: Fraud cases, blacklist\nData Owner: Corporate Security\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Fraud",
+      "category": "Derived",
+      "owner": "Corporate Security",
+      "team": "nan"
+    }
+  },
+  {
+    "source": "data_domains.xlsx",
+    "title": "Credit Risk",
+    "text": "Domain Name: Credit Risk\nCategory: Derived\nDefinition: Customer credit risk analytics\nSample Data: Credit score, overdue debts\nData Owner: Credit Risk\nRelated Sub-Team: nan",
+    "metadata": {
+      "domain_name": "Credit Risk",
+      "category": "Derived",
+      "owner": "Credit Risk",
+      "team": "nan"
+    }
+  }
+]

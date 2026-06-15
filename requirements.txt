@@ -1,3 +1,6 @@
 chainlit
 openai
 python-dotenv
+pandas
+openpyxl
+python-docx
