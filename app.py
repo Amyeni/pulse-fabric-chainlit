@@ -1,9 +1,14 @@
 import os
-import json
 import re
-from dotenv import load_dotenv
+import json
+from datetime import datetime
+from copy import deepcopy
+
 import chainlit as cl
+from dotenv import load_dotenv
 from openai import OpenAI
+from docx import Document
+
 
 load_dotenv()
 
@@ -13,7 +18,13 @@ API_KEY = os.getenv("API_KEY")
 
 client = OpenAI(api_key=API_KEY, base_url=API_BASE)
 
+DOMAIN_CATALOG_PATH = "domain_catalog.json"
+GUARDRAIL_CHUNKS_PATH = "guardrail_chunks.json"
+BRD_TEMPLATE_PATH = "data/brd_template.docx"
+OUTPUT_DIR = "output"
 AGENT_IMAGE_PATH = "public/agents.png"
+
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 AGENT_ICONS = {
     "Scout": "🦅",
@@ -21,7 +32,7 @@ AGENT_ICONS = {
     "Strategist": "🐺",
     "Scribe": "🐙",
     "Conductor": "🐬",
-    "Guardian": "🦏"
+    "Guardian": "🦏",
 }
 
 CUSTOMER_JOURNEYS = {
@@ -40,131 +51,474 @@ CUSTOMER_JOURNEYS = {
 }
 
 REQUIRED_FIELDS = {
-    "business_need": "Business need",
-    "data_domain": "Data domain",
-    "source_system": "Source system",
-    "expected_output": "Expected output",
+    "business_need": "Business Need",
+    "data_domain": "Data Domain",
+    "source_system": "Source System",
+    "expected_output": "Expected Output",
     "consumer": "Consumer",
     "frequency": "Frequency",
     "contains_pii": "Contains PII",
-    "deadline": "Deadline"
+    "deadline": "Deadline",
 }
+
+
+BILINGUAL_TERMS = {
+    "campaign": ["campaign", "campaigns", "marketing", "promotion", "kampanya", "pazarlama"],
+    "marketing": ["marketing", "campaign", "kampanya", "pazarlama", "nps", "profitability"],
+    "performance": ["performance", "kpi", "metric", "analytics", "performans", "metrik", "analitik"],
+    "retention": ["retention", "historical", "archive", "5 years", "saklama", "veri saklama", "arşiv", "eski veri", "geçmiş veri"],
+    "pii": ["pii", "personal data", "kvkk", "kişisel veri", "hassas veri", "tckn", "telefon", "msisdn", "location", "lokasyon"],
+    "approval": ["approval", "approve", "review", "onay", "istisna onayı", "mimari kurul", "veri mimarisi kurulu"],
+    "customer": ["customer", "subscriber", "musteri", "müşteri", "abone", "segment"],
+    "source": ["source", "system", "platform", "kaynak", "sistem", "platform"],
+}
+
+
+DOMAIN_BOOST_RULES = {
+    "Marketing": ["campaign", "campaigns", "marketing", "nps", "profitability", "promotion", "campaign performance"],
+    "Customer": ["customer id", "customer identity", "customer type", "tariff", "customer"],
+    "Product & Service": ["tariff", "bundle", "pricing", "product", "service"],
+    "Customer Service Performance": ["aht", "fcr", "call center", "service efficiency"],
+    "Management Reporting": ["executive", "market share", "arpu", "kpi"],
+    "Network Capacity & Performance Mgmt": ["network performance", "capacity"],
+    "Digital Channel Performance": ["digital analytics", "heatmap", "page load"],
+}
+
+
+def normalize(text):
+    text = str(text or "").lower()
+    text = text.replace("ı", "i").replace("ğ", "g").replace("ü", "u")
+    text = text.replace("ş", "s").replace("ö", "o").replace("ç", "c")
+    return re.sub(r"[^a-z0-9 ]", " ", text)
+
+
+def is_empty(value):
+    return value in [None, "", "-", "Unknown", "unknown", "N/A", "n/a", "Not found"]
 
 
 def safe_json_loads(text):
     try:
         return json.loads(text)
     except Exception:
-        match = re.search(r"\{.*\}", text, re.DOTALL)
+        match = re.search(r"\{.*\}", text or "", re.DOTALL)
         if match:
             return json.loads(match.group(0))
-        raise
+        return {}
 
 
-def get_missing_fields(data):
-    missing = []
-    for key in REQUIRED_FIELDS:
-        value = data.get(key)
-        if value in [None, "", "-", "Unknown", "unknown", "N/A", "n/a"]:
-            missing.append(key)
-    return missing
-
-
-def load_rag_context():
-    if not os.path.exists("rag_index.json"):
+def load_json(path):
+    if not os.path.exists(path):
         return []
-    with open("rag_index.json", "r", encoding="utf-8") as f:
+    with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def rag_search(query, top_k=8):
-    docs = load_rag_context()
-    query_words = set(query.lower().replace(",", " ").replace(".", " ").split())
+def expand_query(text):
+    expanded = normalize(text)
+    for key, terms in BILINGUAL_TERMS.items():
+        if key in expanded or any(normalize(t) in expanded for t in terms):
+            expanded += " " + " ".join(terms)
+    return normalize(expanded)
+
+
+def score_domain(request, domain):
+    request_n = expand_query(request)
+    searchable = normalize(
+        f"{domain.get('domain_name')} "
+        f"{domain.get('category')} "
+        f"{domain.get('definition')} "
+        f"{domain.get('sample_data')} "
+        f"{domain.get('data_owner')} "
+        f"{domain.get('related_sub_team')}"
+    )
+
+    score = 0
+    reasons = []
+
+    for term in set(request_n.split()):
+        if len(term) > 2 and term in searchable:
+            score += 1
+            reasons.append(f"keyword match: {term}")
+
+    domain_name = domain.get("domain_name", "")
+
+    for boost_term in DOMAIN_BOOST_RULES.get(domain_name, []):
+        if normalize(boost_term) in request_n:
+            score += 5
+            reasons.append(f"domain boost: {boost_term}")
+
+    if "campaign performance" in request_n and domain_name == "Marketing":
+        score += 10
+        reasons.append("strong phrase match: campaign performance")
+
+    if "performance" in request_n and "performance" in searchable:
+        score += 3
+        reasons.append("performance match")
+
+    return score, reasons
+
+
+def scout_agent(user_request):
+    domains = load_json(DOMAIN_CATALOG_PATH)
 
     scored = []
-    for doc in docs:
-        text = doc.get("text", "").lower()
-        score = sum(1 for word in query_words if word in text)
-        if score > 0:
-            scored.append((score, doc))
+    for domain in domains:
+        score, reasons = score_domain(user_request, domain)
+        scored.append({
+            "score": score,
+            "domain": domain,
+            "reasons": reasons[:5]
+        })
 
-    scored.sort(key=lambda x: x[0], reverse=True)
-    return [doc for _, doc in scored[:top_k]]
+    scored.sort(key=lambda x: x["score"], reverse=True)
 
+    top_candidates = scored[:3]
+    selected = top_candidates[0] if top_candidates and top_candidates[0]["score"] > 0 else None
 
-def build_prompt(user_request, contexts, current_data=None):
-    context_text = "\n\n".join(
-        [
-            f"[{i + 1}] {c.get('source', 'source')}:\n{c.get('text', '')}"
-            for i, c in enumerate(contexts)
-        ]
-    )
+    if not selected:
+        return {
+            "selected_domain": "Not found in catalog",
+            "data_owner": "-",
+            "related_sub_team": "-",
+            "top_candidates": [],
+            "finding": "No confident domain match found in domain catalog."
+        }
 
-    return f"""
-You are Pulse Fabric, an AI-powered data governance and request maturation assistant.
+    d = selected["domain"]
 
-Use the following enterprise context:
-- Data governance guardrails
-- Data domain catalog
-- Data ownership information
-- Retention and PII rules when available
-
-User request:
-{user_request}
-
-Existing filled fields:
-{json.dumps(current_data or {}, ensure_ascii=False, indent=2)}
-
-RAG context:
-{context_text}
-
-Return ONLY valid JSON with this schema:
-
-{{
-  "business_need": "",
-  "data_domain": "",
-  "source_system": "",
-  "expected_output": "",
-  "consumer": "",
-  "frequency": "",
-  "contains_pii": "",
-  "deadline": "",
-  "request_maturity_score": 0,
-  "priority_score": 0,
-  "risk_level": "LOW / MEDIUM / HIGH",
-  "guardian_decision": "Auto Approve / Needs Review / Escalate",
-  "next_step": "",
-  "agent_timeline": {{
-    "Scout": "",
-    "Inspector": "",
-    "Strategist": "",
-    "Scribe": "",
-    "Conductor": "",
-    "Guardian": ""
-  }}
-}}
-"""
-
-
-def ask_llm(user_request, contexts, current_data=None):
-    prompt = build_prompt(user_request, contexts, current_data)
-
-    response = client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=[
+    return {
+        "selected_domain": d.get("domain_name", "-"),
+        "category": d.get("category", "-"),
+        "definition": d.get("definition", "-"),
+        "sample_data": d.get("sample_data", "-"),
+        "data_owner": d.get("data_owner", "-"),
+        "related_sub_team": d.get("related_sub_team", "-"),
+        "top_candidates": [
             {
-                "role": "system",
-                "content": "You are a data governance assistant. Return only valid JSON. Do not add markdown."
-            },
-            {
-                "role": "user",
-                "content": prompt
+                "domain_name": c["domain"].get("domain_name"),
+                "score": c["score"],
+                "reasons": c["reasons"]
             }
+            for c in top_candidates
         ],
-        temperature=0.2
-    )
+        "finding": f"Selected domain from catalog: {d.get('domain_name')}."
+    }
 
-    return safe_json_loads(response.choices[0].message.content)
+
+def search_guardrail(user_request, top_k=5):
+    chunks = load_json(GUARDRAIL_CHUNKS_PATH)
+
+    request_text = normalize(user_request)
+    expanded_request = expand_query(user_request)
+
+    rule_intents = {
+        "pii_kvkk": {
+            "request_terms": ["pii", "kvkk", "personal data", "kişisel veri", "kisisel veri", "tckn", "phone", "telefon", "msisdn", "location", "lokasyon"],
+            "rule_terms": ["kvkk", "kişisel veri", "kisisel veri", "hassas veri", "güvenlik", "guvenlik", "erişim", "erisim", "maskeleme", "anonim"]
+        },
+        "retention": {
+            "request_terms": ["retention", "5 years", "5 year", "historical", "archive", "old data", "eski veri", "geçmiş veri", "gecmis veri"],
+            "rule_terms": ["saklama", "retention", "arşiv", "arsiv", "geçmiş", "gecmis", "veri yaşam", "veri yasam", "silme"]
+        },
+        "approval": {
+            "request_terms": ["approval", "exception", "review", "onay", "istisna"],
+            "rule_terms": ["onay", "istisna", "veri mimarisi kurulu", "mimari kurul", "review", "uyum", "zorunlu"]
+        },
+        "platform_architecture": {
+            "request_terms": ["source", "system", "platform", "prime", "ods", "ozone", "lakehouse", "kaizen", "dwh"],
+            "rule_terms": ["ods", "prime", "dwh", "ozone", "lakehouse", "kaizen", "platform", "mimari", "kaynak sistem"]
+        }
+    }
+
+    active_intents = []
+
+    for intent, cfg in rule_intents.items():
+        if any(normalize(t) in expanded_request for t in cfg["request_terms"]):
+            active_intents.append(intent)
+
+    scored = []
+
+    for chunk in chunks:
+        raw_text = chunk.get("text", "")
+        text = normalize(raw_text)
+
+        score = 0
+        reasons = []
+
+        for intent in active_intents:
+            for rule_term in rule_intents[intent]["rule_terms"]:
+                if normalize(rule_term) in text:
+                    score += 10
+                    reasons.append(f"{intent}: {rule_term}")
+
+        for term in set(expanded_request.split()):
+            if len(term) > 3 and term in text:
+                score += 1
+                reasons.append(f"keyword: {term}")
+
+        if score > 0:
+            enriched_chunk = dict(chunk)
+            enriched_chunk["score"] = score
+            enriched_chunk["match_reasons"] = reasons[:5]
+            scored.append(enriched_chunk)
+
+    scored.sort(key=lambda x: x["score"], reverse=True)
+
+    return scored[:top_k]
+
+def guardian_agent(user_request, request_data):
+    guardrail_context = search_guardrail(user_request)
+    request_n = expand_query(user_request + " " + json.dumps(request_data, ensure_ascii=False))
+
+    matched_rules = [
+    {
+        "rule_text": c.get("text", "")[:500],
+        "score": c.get("score", 0),
+        "match_reasons": c.get("match_reasons", [])
+    }
+    for c in guardrail_context
+]
+
+    contains_pii = "No"
+    retention_risk = "No"
+    approval_required = "No"
+    risk_level = "LOW"
+    decision = "Auto Approve"
+    required_approval = "-"
+    reasoning = []
+
+    pii_terms = ["pii", "kvkk", "kisisel veri", "kişisel veri", "hassas veri", "tckn", "telefon", "phone", "msisdn", "location", "lokasyon"]
+    retention_terms = ["retention", "5 years", "5 year", "5 yil", "5 yıl", "historical", "archive", "saklama", "arsiv", "arşiv", "eski veri", "gecmis veri", "geçmiş veri"]
+    approval_terms = ["approval", "onay", "istisna", "mimari kurul", "veri mimarisi kurulu"]
+
+    if any(t in request_n for t in pii_terms):
+        contains_pii = "Yes"
+        risk_level = "HIGH"
+        decision = "Escalate"
+        approval_required = "KVKK / PII approval"
+        reasoning.append("PII/KVKK signal detected in request.")
+
+    if any(t in request_n for t in retention_terms):
+        retention_risk = "Yes"
+        risk_level = "HIGH"
+        if decision != "Escalate":
+            decision = "Needs Review"
+        approval_required = "Retention policy review"
+        reasoning.append("Historical / retention-sensitive data usage detected.")
+
+    if any(t in request_n for t in approval_terms):
+        approval_required = "Architecture / governance approval"
+        if decision == "Auto Approve":
+            decision = "Needs Review"
+        reasoning.append("Approval-related guardrail signal detected.")
+
+    if not reasoning:
+        reasoning.append("No critical KVKK, PII or retention signal detected from guardrail search.")
+
+    return {
+        "contains_pii": contains_pii,
+        "retention_risk": retention_risk,
+        "architecture_approval_required": approval_required,
+        "risk_level": risk_level,
+        "guardian_decision": decision,
+        "guardrail_reasoning": " ".join(reasoning),
+        "required_approval": approval_required,
+        "matched_guardrail_rules": matched_rules,
+        "guardrail_sources": [c.get("id", "guardrail") for c in guardrail_context]
+    }
+
+
+def get_missing_fields(data):
+    return [k for k in REQUIRED_FIELDS if is_empty(data.get(k))]
+
+
+def inspector_agent(request_data):
+    missing = get_missing_fields(request_data)
+    maturity_score = int(((len(REQUIRED_FIELDS) - len(missing)) / len(REQUIRED_FIELDS)) * 100)
+
+    return {
+        "missing_fields": missing,
+        "request_maturity_score": maturity_score,
+        "finding": f"{len(missing)} missing field(s) detected."
+    }
+
+
+def strategist_agent(request_data, guardian_result, inspector_result):
+    priority = 40
+    reasons = []
+
+    if guardian_result.get("risk_level") == "HIGH":
+        priority += 35
+        reasons.append("High governance risk")
+
+    if guardian_result.get("retention_risk") == "Yes":
+        priority += 20
+        reasons.append("Retention risk detected")
+
+    if guardian_result.get("contains_pii") == "Yes":
+        priority += 20
+        reasons.append("PII/KVKK signal detected")
+
+    if inspector_result.get("request_maturity_score", 0) < 70:
+        priority -= 10
+        reasons.append("Request maturity is not sufficient yet")
+
+    priority = max(0, min(priority, 100))
+
+    if guardian_result.get("guardian_decision") == "Escalate":
+        routing = "Route to Guardian approval before delivery assessment"
+    elif inspector_result.get("missing_fields"):
+        routing = "Collect missing fields before final routing"
+    else:
+        routing = "Route to responsible data owner and delivery team"
+
+    return {
+        "priority_score": priority,
+        "routing": routing,
+        "reasons": reasons or ["Standard prioritization"]
+    }
+
+
+def scribe_summary(request_data, scout_result, guardian_result, strategist_result):
+    return {
+        "brd_title": "Pulse Fabric Generated BRD",
+        "business_need": request_data.get("business_need", "-"),
+        "data_domain": request_data.get("data_domain", "-"),
+        "data_owner": scout_result.get("data_owner", "-"),
+        "related_sub_team": scout_result.get("related_sub_team", "-"),
+        "source_system": request_data.get("source_system", "-"),
+        "expected_output": request_data.get("expected_output", "-"),
+        "consumer": request_data.get("consumer", "-"),
+        "frequency": request_data.get("frequency", "-"),
+        "deadline": request_data.get("deadline", "-"),
+        "pii_assessment": guardian_result.get("contains_pii", "-"),
+        "retention_assessment": guardian_result.get("retention_risk", "-"),
+        "risk_level": guardian_result.get("risk_level", "-"),
+        "guardian_decision": guardian_result.get("guardian_decision", "-"),
+        "priority_score": strategist_result.get("priority_score", "-"),
+        "next_step": strategist_result.get("routing", "-"),
+    }
+
+
+def replace_placeholders(doc, values):
+    placeholders = {f"{{{{{k}}}}}": str(v) for k, v in values.items()}
+
+    def replace_in_paragraph(paragraph):
+        for placeholder, value in placeholders.items():
+            if placeholder in paragraph.text:
+                for run in paragraph.runs:
+                    run.text = run.text.replace(placeholder, value)
+
+    for paragraph in doc.paragraphs:
+        replace_in_paragraph(paragraph)
+
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    replace_in_paragraph(paragraph)
+
+
+def add_brd_appendix(doc, values):
+    doc.add_heading("Pulse Fabric Auto-Filled BRD Summary", level=1)
+
+    table = doc.add_table(rows=1, cols=2)
+    table.style = "Table Grid"
+
+    hdr = table.rows[0].cells
+    hdr[0].text = "Field"
+    hdr[1].text = "Value"
+
+    for key, value in values.items():
+        row = table.add_row().cells
+        row[0].text = key.replace("_", " ").title()
+        row[1].text = str(value)
+
+
+def generate_brd_docx(brd_values):
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = os.path.join(OUTPUT_DIR, f"Pulse_Fabric_BRD_{timestamp}.docx")
+
+    if os.path.exists(BRD_TEMPLATE_PATH):
+        doc = Document(BRD_TEMPLATE_PATH)
+        replace_placeholders(doc, brd_values)
+        add_brd_appendix(doc, brd_values)
+    else:
+        doc = Document()
+        doc.add_heading("Pulse Fabric Generated BRD", level=1)
+        add_brd_appendix(doc, brd_values)
+
+    doc.save(output_path)
+    return output_path
+
+
+def conductor_agent(request_data, scout_result, guardian_result, inspector_result, strategist_result):
+    if inspector_result["missing_fields"]:
+        next_step = "Inspector Agent must collect missing fields."
+    elif guardian_result.get("guardian_decision") in ["Needs Review", "Escalate"]:
+        next_step = "Guardian approval is required before delivery."
+    else:
+        next_step = "Request is ready for data owner review and delivery assessment."
+
+    return {
+        "next_step": next_step,
+        "final_status": "Ready for review" if not inspector_result["missing_fields"] else "Needs clarification"
+    }
+
+
+def build_request_data(user_request, scout_result):
+    return {
+        "business_need": user_request,
+        "data_domain": scout_result.get("selected_domain", "-"),
+        "source_system": "-",
+        "expected_output": "-",
+        "consumer": scout_result.get("data_owner", "-"),
+        "frequency": "-",
+        "contains_pii": "-",
+        "deadline": "-",
+    }
+
+
+def run_agents(user_request, existing_data=None):
+    scout = scout_agent(user_request)
+
+    request_data = deepcopy(existing_data) if existing_data else build_request_data(user_request, scout)
+
+    if is_empty(request_data.get("data_domain")):
+        request_data["data_domain"] = scout.get("selected_domain", "-")
+
+    if is_empty(request_data.get("consumer")):
+        request_data["consumer"] = scout.get("data_owner", "-")
+
+    guardian = guardian_agent(user_request, request_data)
+
+    if is_empty(request_data.get("contains_pii")):
+        request_data["contains_pii"] = guardian.get("contains_pii", "-")
+
+    inspector = inspector_agent(request_data)
+    strategist = strategist_agent(request_data, guardian, inspector)
+    conductor = conductor_agent(request_data, scout, guardian, inspector, strategist)
+
+    agent_timeline = {
+        "Scout": scout.get("finding", "-"),
+        "Inspector": inspector.get("finding", "-"),
+        "Guardian": guardian.get("guardrail_reasoning", "-"),
+        "Strategist": f"Priority score calculated as {strategist.get('priority_score')}/100.",
+        "Scribe": "BRD will be generated after maturity check.",
+        "Conductor": conductor.get("next_step", "-"),
+    }
+
+    result = {
+        "request_data": request_data,
+        "scout": scout,
+        "guardian": guardian,
+        "inspector": inspector,
+        "strategist": strategist,
+        "conductor": conductor,
+        "agent_timeline": agent_timeline,
+    }
+
+    return result
 
 
 def render_table(title, rows):
@@ -174,11 +528,21 @@ def render_table(title, rows):
     return md
 
 
-def render_result(data, contexts, user_request):
+def render_result(agent_result, user_request):
+    data = agent_result["request_data"]
+    scout = agent_result["scout"]
+    guardian = agent_result["guardian"]
+    inspector = agent_result["inspector"]
+    strategist = agent_result["strategist"]
+    conductor = agent_result["conductor"]
+    timeline = agent_result["agent_timeline"]
+
     incoming_rows = [
         ("Initial Request", user_request, f"{AGENT_ICONS['Scout']} Scout"),
         ("Business Need", data.get("business_need"), f"{AGENT_ICONS['Scout']} Scout"),
         ("Data Domain", data.get("data_domain"), f"{AGENT_ICONS['Scout']} Scout"),
+        ("Data Owner", scout.get("data_owner"), f"{AGENT_ICONS['Scout']} Scout"),
+        ("Related Sub-Team", scout.get("related_sub_team"), f"{AGENT_ICONS['Scout']} Scout"),
         ("Source System", data.get("source_system"), f"{AGENT_ICONS['Inspector']} Inspector"),
         ("Expected Output", data.get("expected_output"), f"{AGENT_ICONS['Scribe']} Scribe"),
         ("Consumer", data.get("consumer"), f"{AGENT_ICONS['Conductor']} Conductor"),
@@ -188,23 +552,48 @@ def render_result(data, contexts, user_request):
     ]
 
     control_rows = [
-        ("Request Maturity Score", f"{data.get('request_maturity_score', '-')}/100", f"{AGENT_ICONS['Inspector']} Inspector"),
-        ("Priority Score", f"{data.get('priority_score', '-')}/100", f"{AGENT_ICONS['Strategist']} Strategist"),
-        ("Risk Level", data.get("risk_level"), f"{AGENT_ICONS['Guardian']} Guardian"),
-        ("Guardian Decision", data.get("guardian_decision"), f"{AGENT_ICONS['Guardian']} Guardian"),
-        ("Next Step", data.get("next_step"), f"{AGENT_ICONS['Conductor']} Conductor"),
+        ("Request Maturity Score", f"{inspector.get('request_maturity_score')}/100", f"{AGENT_ICONS['Inspector']} Inspector"),
+        ("Priority Score", f"{strategist.get('priority_score')}/100", f"{AGENT_ICONS['Strategist']} Strategist"),
+        ("Risk Level", guardian.get("risk_level"), f"{AGENT_ICONS['Guardian']} Guardian"),
+        ("Guardian Decision", guardian.get("guardian_decision"), f"{AGENT_ICONS['Guardian']} Guardian"),
+        ("Next Step", conductor.get("next_step"), f"{AGENT_ICONS['Conductor']} Conductor"),
     ]
 
-    timeline = data.get("agent_timeline", {})
-    timeline_rows = []
-    for agent in ["Scout", "Inspector", "Strategist", "Scribe", "Conductor", "Guardian"]:
-        timeline_rows.append(
-            (
-                f"{AGENT_ICONS.get(agent, '🤖')} {agent}",
-                timeline.get(agent, "-"),
-                "Assigned"
+    timeline_rows = [
+        (f"{AGENT_ICONS[a]} {a}", timeline.get(a, "-"), "Completed")
+        for a in ["Scout", "Inspector", "Guardian", "Strategist", "Scribe", "Conductor"]
+    ]
+
+    candidate_lines = []
+    for c in scout.get("top_candidates", []):
+        candidate_lines.append(f"- **{c['domain_name']}** — score: {c['score']} — {', '.join(c['reasons'])}")
+
+    guardrail_lines = []
+
+matched_rules = guardian.get("matched_guardrail_rules", [])
+
+if matched_rules:
+    for i, rule in enumerate(matched_rules, 1):
+        if isinstance(rule, dict):
+            reasons = ", ".join(rule.get("match_reasons", []))
+            guardrail_lines.append(
+                f"**Rule {i} — score {rule.get('score', 0)}**  \n"
+                f"{rule.get('rule_text', '-')}  \n"
+                f"_Match reasons: {reasons}_"
             )
-        )
+        else:
+            guardrail_lines.append(f"**Rule {i}:** {rule}")
+else:
+    guardrail_lines.append("-")
+
+    matched_rules = guardian.get("matched_guardrail_rules", [])
+
+    if matched_rules:
+        for i, rule in enumerate(matched_rules, 1):
+            guardrail_lines.append(f"**Rule {i}:** {rule}")
+    else:
+        for src in guardian.get("guardrail_sources", []):
+            guardrail_lines.append(f"- {src}")
 
     md = ""
     md += render_table("📥 Incoming Request", incoming_rows)
@@ -212,12 +601,14 @@ def render_result(data, contexts, user_request):
     md += render_table("📊 Control Tower", control_rows)
     md += "\n---\n"
     md += render_table("🤖 Agent Timeline", timeline_rows)
+    md += "\n---\n"
+    md += "## 🦅 Scout Domain Candidates\n"
+    md += "\n".join(candidate_lines) if candidate_lines else "-"
+    md += "\n\n---\n"
+    md += "## 🦏 Guardian Guardrail Sources\n"
+    md += "\n".join(guardrail_lines) if guardrail_lines else "-"
+    md += "\n"
 
-    sources = "\n".join(
-        [f"- {c.get('source', 'source')}" for c in contexts[:5]]
-    )
-
-    md += f"\n---\n## 📚 RAG Sources Used\n{sources if sources else '-'}\n"
     return md
 
 
@@ -241,25 +632,47 @@ async def ask_next_missing_field():
     return True
 
 
-@cl.on_chat_start
-async def start():
-    cl.user_session.set("request_data", None)
+async def send_brd(agent_result):
+    data = agent_result["request_data"]
+    scout = agent_result["scout"]
+    guardian = agent_result["guardian"]
+    strategist = agent_result["strategist"]
+
+    values = scribe_summary(data, scout, guardian, strategist)
+    brd_path = generate_brd_docx(values)
+
+    await cl.Message(
+        content="🐙 **Scribe Agent** generated the BRD document.",
+        elements=[
+            cl.File(
+                name=os.path.basename(brd_path),
+                path=brd_path,
+                display="inline"
+            )
+        ]
+    ).send()
+    cl.user_session.set("awaiting_next_request_answer", True)
+
+    await cl.Message(content="""
+## ✅ Request Completed
+
+Would you like to create another request?
+
+Please type **yes** or **no**.
+""").send()
+
+async def show_journey_menu():
     cl.user_session.set("user_request", None)
-    cl.user_session.set("contexts", None)
+    cl.user_session.set("agent_result", None)
     cl.user_session.set("awaiting_missing_fields", False)
     cl.user_session.set("missing_fields", [])
     cl.user_session.set("missing_index", 0)
     cl.user_session.set("missing_answers", {})
+    cl.user_session.set("awaiting_next_request_answer", False)
 
     elements = []
     if os.path.exists(AGENT_IMAGE_PATH):
-        elements.append(
-            cl.Image(
-                name="Pulse Fabric Agents",
-                path=AGENT_IMAGE_PATH,
-                display="inline"
-            )
-        )
+        elements.append(cl.Image(name="Pulse Fabric Agents", path=AGENT_IMAGE_PATH, display="inline"))
 
     await cl.Message(
         content="""
@@ -280,15 +693,38 @@ Please type **1**, **2**, **3**, or write your own data request.
         elements=elements
     ).send()
 
+@cl.on_chat_start
+async def start():
+    await show_journey_menu()
+
 
 @cl.on_message
 async def main(message: cl.Message):
     user_input = message.content.strip()
+    awaiting_next = cl.user_session.get("awaiting_next_request_answer")
+
+    if awaiting_next:
+        answer = user_input.lower()
+
+        if answer in ["yes", "y", "evet", "e"]:
+            await show_journey_menu()
+            return
+
+        if answer in ["no", "n", "hayır", "hayir", "h"]:
+            cl.user_session.set("awaiting_next_request_answer", False)
+            await cl.Message(content="""
+✅ Demo flow completed.
+
+Pulse Fabric is ready for the next governance scenario whenever needed.
+""").send()
+            return
+
+        await cl.Message(content="Please type **yes** or **no**.").send()
+        return
 
     awaiting_missing = cl.user_session.get("awaiting_missing_fields")
-    current_data = cl.user_session.get("request_data")
     user_request = cl.user_session.get("user_request")
-    contexts = cl.user_session.get("contexts")
+    agent_result = cl.user_session.get("agent_result")
 
     if awaiting_missing:
         missing_fields = cl.user_session.get("missing_fields") or []
@@ -307,30 +743,25 @@ async def main(message: cl.Message):
             await ask_next_missing_field()
             return
 
-        await cl.Message(
-            content="🔄 All missing fields collected. Recalculating request maturity..."
-        ).send()
+        await cl.Message(content="🔄 All missing fields collected. Re-running agents...").send()
 
-        enriched_text = f"""
-Original request:
-{user_request}
+        request_data = agent_result["request_data"]
+        for key, value in missing_answers.items():
+            request_data[key] = value
 
-Current extracted fields:
-{json.dumps(current_data, ensure_ascii=False, indent=2)}
+        final_result = run_agents(user_request, existing_data=request_data)
 
-Missing field answers:
-{json.dumps(missing_answers, ensure_ascii=False, indent=2)}
-"""
-
-        result = ask_llm(enriched_text, contexts, current_data)
-
-        cl.user_session.set("request_data", result)
+        cl.user_session.set("agent_result", final_result)
         cl.user_session.set("awaiting_missing_fields", False)
         cl.user_session.set("missing_fields", [])
         cl.user_session.set("missing_index", 0)
         cl.user_session.set("missing_answers", {})
 
-        await cl.Message(content=render_result(result, contexts, user_request)).send()
+        await cl.Message(content=render_result(final_result, user_request)).send()
+
+        if not final_result["inspector"]["missing_fields"]:
+            await send_brd(final_result)
+
         return
 
     if user_input in CUSTOMER_JOURNEYS:
@@ -341,6 +772,8 @@ Missing field answers:
         user_request = user_input
         journey_name = "Custom Request"
 
+    cl.user_session.set("user_request", user_request)
+
     await cl.Message(content=f"""
 ## Selected Request
 
@@ -350,22 +783,14 @@ Missing field answers:
 {user_request}
 """).send()
 
-    await cl.Message(content="🦅 Scout Agent is analyzing the request...").send()
+    await cl.Message(content="🦅 Scout Agent is analyzing the request and searching the domain catalog...").send()
 
-    contexts = rag_search(user_request)
-    cl.user_session.set("contexts", contexts)
-    cl.user_session.set("user_request", user_request)
+    agent_result = run_agents(user_request)
+    cl.user_session.set("agent_result", agent_result)
 
-    await cl.Message(
-        content=f"✅ RAG completed. **{len(contexts)}** relevant enterprise sources found."
-    ).send()
+    await cl.Message(content=render_result(agent_result, user_request)).send()
 
-    result = ask_llm(user_request, contexts)
-    cl.user_session.set("request_data", result)
-
-    await cl.Message(content=render_result(result, contexts, user_request)).send()
-
-    missing = get_missing_fields(result)
+    missing = agent_result["inspector"]["missing_fields"]
 
     if missing:
         cl.user_session.set("awaiting_missing_fields", True)
@@ -378,10 +803,11 @@ Missing field answers:
 
 **{len(missing)} missing field(s)** found.
 
-Inspector Agent will ask the missing fields one by one.  
+Inspector Agent will ask them one by one.  
 The request maturity will be recalculated only after all answers are collected.
 """).send()
 
         await ask_next_missing_field()
     else:
-        await cl.Message(content="✅ Request is mature. No missing fields detected.").send()
+        await cl.Message(content="✅ Request is mature. Generating BRD...").send()
+        await send_brd(agent_result)
