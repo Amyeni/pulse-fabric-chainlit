@@ -570,30 +570,30 @@ def render_result(agent_result, user_request):
 
     guardrail_lines = []
 
-matched_rules = guardian.get("matched_guardrail_rules", [])
-
-if matched_rules:
-    for i, rule in enumerate(matched_rules, 1):
-        if isinstance(rule, dict):
-            reasons = ", ".join(rule.get("match_reasons", []))
-            guardrail_lines.append(
-                f"**Rule {i} — score {rule.get('score', 0)}**  \n"
-                f"{rule.get('rule_text', '-')}  \n"
-                f"_Match reasons: {reasons}_"
-            )
-        else:
-            guardrail_lines.append(f"**Rule {i}:** {rule}")
-else:
-    guardrail_lines.append("-")
-
     matched_rules = guardian.get("matched_guardrail_rules", [])
 
     if matched_rules:
         for i, rule in enumerate(matched_rules, 1):
-            guardrail_lines.append(f"**Rule {i}:** {rule}")
+            if isinstance(rule, dict):
+                reasons = ", ".join(rule.get("match_reasons", []))
+                guardrail_lines.append(
+                    f"**Rule {i} — score {rule.get('score', 0)}**  \n"
+                    f"{rule.get('rule_text', '-')}  \n"
+                    f"_Match reasons: {reasons}_"
+                )
+            else:
+                guardrail_lines.append(f"**Rule {i}:** {rule}")
     else:
-        for src in guardian.get("guardrail_sources", []):
-            guardrail_lines.append(f"- {src}")
+        guardrail_lines.append("-")
+
+        matched_rules = guardian.get("matched_guardrail_rules", [])
+
+        if matched_rules:
+            for i, rule in enumerate(matched_rules, 1):
+                guardrail_lines.append(f"**Rule {i}:** {rule}")
+        else:
+            for src in guardian.get("guardrail_sources", []):
+                guardrail_lines.append(f"- {src}")
 
     md = ""
     md += render_table("📥 Incoming Request", incoming_rows)
