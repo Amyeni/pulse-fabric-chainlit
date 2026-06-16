@@ -1,0 +1,308 @@
+[
+  {
+    "domain_no": "1",
+    "domain_name": "Customer",
+    "category": "Master & Reference",
+    "definition": "Customer identity, type, relationships, usage",
+    "sample_data": "Customer ID, name, type, tariff, campaign",
+    "data_owner": "Marketing / Base Growth",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "2",
+    "domain_name": "Channel",
+    "category": "Master & Reference",
+    "definition": "Channel interaction and authorization info",
+    "sample_data": "Access channel types, authorization",
+    "data_owner": "Marketing",
+    "related_sub_team": "Marketing & Channel"
+  },
+  {
+    "domain_no": "3",
+    "domain_name": "Product & Service",
+    "category": "Master & Reference",
+    "definition": "Product technical/commercial/pricing structures",
+    "sample_data": "Tariffs, bundles, campaigns",
+    "data_owner": "Product & Solutions / Base Growth",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "4",
+    "domain_name": "Employee",
+    "category": "Master & Reference",
+    "definition": "Employee personal/performance/training info",
+    "sample_data": "Employee ID, role, training",
+    "data_owner": "Reward & Employee Relations",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "5",
+    "domain_name": "Organizational Structure",
+    "category": "Master & Reference",
+    "definition": "Org hierarchy and internal units",
+    "sample_data": "Org chart, reporting lines",
+    "data_owner": "Organizational Effectiveness & Tech HRBP",
+    "related_sub_team": "Organizational Efficiency"
+  },
+  {
+    "domain_no": "6",
+    "domain_name": "Supplier & Partner",
+    "category": "Master & Reference",
+    "definition": "Supplier/partner descriptive info",
+    "sample_data": "Supplier names, contracts",
+    "data_owner": "Supply Chain",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "7",
+    "domain_name": "Chart of Accounts",
+    "category": "Master & Reference",
+    "definition": "Financial account classifications",
+    "sample_data": "Account codes, hierarchy",
+    "data_owner": "Finance Operations",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "8",
+    "domain_name": "Network Equipment",
+    "category": "Master & Reference",
+    "definition": "Physical network infrastructure",
+    "sample_data": "Base station ID, coverage",
+    "data_owner": "Network Operations / Development",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "9",
+    "domain_name": "Number Inventory",
+    "category": "Master & Reference",
+    "definition": "MSISDN/IMSI lifecycle allocation",
+    "sample_data": "SIM, IMSI status",
+    "data_owner": "Device Ops & Trade Marketing",
+    "related_sub_team": "Terminal Dist & SCM"
+  },
+  {
+    "domain_no": "10",
+    "domain_name": "Reference",
+    "category": "Master & Reference",
+    "definition": "Standard reference codes across systems",
+    "sample_data": "Currency codes, country codes",
+    "data_owner": "Data Governance Office",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "11",
+    "domain_name": "Contact Policy",
+    "category": "Master & Reference",
+    "definition": "Customer contact interaction rules",
+    "sample_data": "SMS/email contact policies",
+    "data_owner": "CX & UX Design",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "12",
+    "domain_name": "Order",
+    "category": "Transactional",
+    "definition": "Order management transactions",
+    "sample_data": "Order status, delivery dates",
+    "data_owner": "Customer Operations",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "13",
+    "domain_name": "Network Usage",
+    "category": "Transactional",
+    "definition": "Usage within subscribed tariffs",
+    "sample_data": "CDR, SMS usage, data usage",
+    "data_owner": "Network Operation Management",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "14",
+    "domain_name": "Complaint",
+    "category": "Transactional",
+    "definition": "Customer complaint records",
+    "sample_data": "Complaint content, resolution status",
+    "data_owner": "Customer Operations",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "15",
+    "domain_name": "Customer Service",
+    "category": "Transactional",
+    "definition": "Call center interaction records",
+    "sample_data": "Call logs, agent interaction",
+    "data_owner": "Customer Operations",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "16",
+    "domain_name": "Accounts Receivable & Payments",
+    "category": "Transactional",
+    "definition": "Billing collection tracking",
+    "sample_data": "Invoice payments, balances",
+    "data_owner": "Finance Operations",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "17",
+    "domain_name": "Billing",
+    "category": "Transactional",
+    "definition": "Invoice generation data",
+    "sample_data": "Invoice number, billing period",
+    "data_owner": "Finance Operations",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "18",
+    "domain_name": "Charging",
+    "category": "Transactional",
+    "definition": "Charging process data",
+    "sample_data": "Charging records",
+    "data_owner": "Finance Operations",
+    "related_sub_team": "Revenue Assurance"
+  },
+  {
+    "domain_no": "19",
+    "domain_name": "Stock Device & Accessory Procurement",
+    "category": "Transactional",
+    "definition": "Inventory/logistics device transactions",
+    "sample_data": "Warehouse stock, device sales",
+    "data_owner": "VBTS / Device Ops & Trade Marketing",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "20",
+    "domain_name": "Reconciliation",
+    "category": "Transactional",
+    "definition": "Inter-operator reconciliation",
+    "sample_data": "Settlement amounts",
+    "data_owner": "Finance Operations",
+    "related_sub_team": "Business Assurance & Commissions"
+  },
+  {
+    "domain_no": "21",
+    "domain_name": "Digital Channel Transaction",
+    "category": "Transactional",
+    "definition": "Digital channel interaction logs",
+    "sample_data": "Login/session/channel usage",
+    "data_owner": "Digital Assets",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "22",
+    "domain_name": "Financial Planning",
+    "category": "Derived",
+    "definition": "Budget planning analytics",
+    "sample_data": "Financial planning reports",
+    "data_owner": "Financial Planning & Strategy",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "23",
+    "domain_name": "Sales",
+    "category": "Derived",
+    "definition": "Sales contract/incentive analytics",
+    "sample_data": "Dealer contracts, commissions",
+    "data_owner": "Commercial Mgmt / Device Ops",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "24",
+    "domain_name": "Marketing",
+    "category": "Derived",
+    "definition": "Campaign analytics & profitability",
+    "sample_data": "NPS, campaign performance",
+    "data_owner": "Marketing / Base Growth",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "25",
+    "domain_name": "Regulatory",
+    "category": "Derived",
+    "definition": "Compliance reporting datasets",
+    "sample_data": "Regulatory telecom reports",
+    "data_owner": "Regulatory Affairs",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "26",
+    "domain_name": "Management Reporting",
+    "category": "Derived",
+    "definition": "Executive reporting KPIs",
+    "sample_data": "Market share, ARPU",
+    "data_owner": "Financial Planning & Strategy",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "27",
+    "domain_name": "Enterprise Risk",
+    "category": "Derived",
+    "definition": "Operational/enterprise risk metrics",
+    "sample_data": "Risk assessments",
+    "data_owner": "Corporate Security",
+    "related_sub_team": "Business Resilience"
+  },
+  {
+    "domain_no": "28",
+    "domain_name": "Revenue Assurance",
+    "category": "Derived",
+    "definition": "Revenue stream validations",
+    "sample_data": "Revenue streams/contracts",
+    "data_owner": "FinOps Core Solutions",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "29",
+    "domain_name": "Customer Service Performance",
+    "category": "Derived",
+    "definition": "Service efficiency KPIs",
+    "sample_data": "AHT, FCR metrics",
+    "data_owner": "Customer Operations",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "30",
+    "domain_name": "Network Capacity & Performance Mgmt",
+    "category": "Derived",
+    "definition": "Network performance forecasting",
+    "sample_data": "Capacity utilization",
+    "data_owner": "NW Quality",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "31",
+    "domain_name": "Digital Channel Performance",
+    "category": "Derived",
+    "definition": "Digital analytics behavior logs",
+    "sample_data": "Heatmaps, page load metrics",
+    "data_owner": "Digital Assets",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "32",
+    "domain_name": "Tax",
+    "category": "Derived",
+    "definition": "Tax reporting datasets",
+    "sample_data": "VAT/tax rates",
+    "data_owner": "Tax",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "33",
+    "domain_name": "Fraud",
+    "category": "Derived",
+    "definition": "Fraud detection indicators",
+    "sample_data": "Fraud cases, blacklist",
+    "data_owner": "Corporate Security",
+    "related_sub_team": ""
+  },
+  {
+    "domain_no": "34",
+    "domain_name": "Credit Risk",
+    "category": "Derived",
+    "definition": "Customer credit risk analytics",
+    "sample_data": "Credit score, overdue debts",
+    "data_owner": "Credit Risk",
+    "related_sub_team": ""
+  }
+]

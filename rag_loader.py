@@ -1,89 +1,131 @@
 import json
-import pandas as pd
+import os
 from docx import Document
-from pathlib import Path
+import pandas as pd
 
-DATA_DIR = Path("data")
-OUTPUT_FILE = Path("rag_index.json")
+DATA_DIR = "data"
+GUARDRAIL_PATH = os.path.join(DATA_DIR, "guardrail.docx")
+DOMAIN_PATH = os.path.join(DATA_DIR, "data_domains.xlsx")
 
-chunks = []
+RAG_INDEX_PATH = "rag_index.json"
+DOMAIN_CATALOG_PATH = "domain_catalog.json"
+GUARDRAIL_CHUNKS_PATH = "guardrail_chunks.json"
 
-def add_chunk(source, title, text, metadata=None):
-    text = str(text).strip()
-    if not text:
-        return
-    chunks.append({
-        "source": source,
-        "title": title,
-        "text": text,
-        "metadata": metadata or {}
-    })
+
+def clean_value(value):
+    if pd.isna(value):
+        return ""
+    return str(value).strip()
+
+
+def chunk_text(text, chunk_size=900):
+    words = text.split()
+    chunks = []
+
+    for i in range(0, len(words), chunk_size):
+        chunk = " ".join(words[i:i + chunk_size])
+        if chunk.strip():
+            chunks.append(chunk)
+
+    return chunks
+
 
 def load_guardrail():
-    doc_path = DATA_DIR / "guardrail.docx"
-    doc = Document(doc_path)
+    doc = Document(GUARDRAIL_PATH)
 
-    current_section = "Guardrail Policy"
-    buffer = []
+    paragraphs = [
+        p.text.strip()
+        for p in doc.paragraphs
+        if p.text and p.text.strip()
+    ]
 
-    for p in doc.paragraphs:
-        txt = p.text.strip()
-        if not txt:
-            continue
+    full_text = "\n".join(paragraphs)
+    chunks = chunk_text(full_text, chunk_size=120)
 
-        if len(txt) < 80 and not txt.endswith("."):
-            if buffer:
-                add_chunk("guardrail.docx", current_section, "\n".join(buffer))
-                buffer = []
-            current_section = txt
-        else:
-            buffer.append(txt)
+    guardrail_chunks = []
 
-    if buffer:
-        add_chunk("guardrail.docx", current_section, "\n".join(buffer))
+    for idx, chunk in enumerate(chunks, start=1):
+        guardrail_chunks.append({
+            "id": f"guardrail_{idx}",
+            "source": "guardrail.docx",
+            "type": "guardrail",
+            "text": chunk
+        })
 
-def load_domains():
-    excel_path = DATA_DIR / "data_domains.xlsx"
-    df = pd.read_excel(excel_path)
+    return guardrail_chunks
+
+
+def load_domain_catalog():
+    df = pd.read_excel(DOMAIN_PATH)
+
+    domain_catalog = []
 
     for _, row in df.iterrows():
-        domain_name = str(row.get("Domain Name", "")).strip()
-        category = str(row.get("Category", "")).strip()
-        definition = str(row.get("Definition (Summary)", "")).strip()
-        sample_data = str(row.get("Sample Data (Summary)", "")).strip()
-        owner = str(row.get("Data Owner", "")).strip()
-        team = str(row.get("Related Sub-Team", "")).strip()
+        domain_name = clean_value(row.get("Domain Name"))
+        if not domain_name:
+            continue
 
-        text = f"""
-Domain Name: {domain_name}
-Category: {category}
-Definition: {definition}
-Sample Data: {sample_data}
-Data Owner: {owner}
-Related Sub-Team: {team}
-""".strip()
+        record = {
+            "domain_no": clean_value(row.get("Domain No")),
+            "domain_name": domain_name,
+            "category": clean_value(row.get("Category")),
+            "definition": clean_value(row.get("Definition (Summary)")),
+            "sample_data": clean_value(row.get("Sample Data (Summary)")),
+            "data_owner": clean_value(row.get("Data Owner")),
+            "related_sub_team": clean_value(row.get("Related Sub-Team")),
+        }
 
-        add_chunk(
-            source="data_domains.xlsx",
-            title=domain_name,
-            text=text,
-            metadata={
-                "domain_name": domain_name,
-                "category": category,
-                "owner": owner,
-                "team": team
-            }
+        domain_catalog.append(record)
+
+    return domain_catalog
+
+
+def domain_to_rag_chunk(domain):
+    return {
+        "id": f"domain_{domain.get('domain_no') or domain.get('domain_name')}",
+        "source": "data_domains.xlsx",
+        "type": "domain",
+        "text": (
+            f"Domain No: {domain.get('domain_no')}\n"
+            f"Domain Name: {domain.get('domain_name')}\n"
+            f"Category: {domain.get('category')}\n"
+            f"Definition: {domain.get('definition')}\n"
+            f"Sample Data: {domain.get('sample_data')}\n"
+            f"Data Owner: {domain.get('data_owner')}\n"
+            f"Related Sub-Team: {domain.get('related_sub_team')}"
         )
+    }
+
 
 def main():
-    load_guardrail()
-    load_domains()
+    if not os.path.exists(GUARDRAIL_PATH):
+        raise FileNotFoundError(f"Missing file: {GUARDRAIL_PATH}")
 
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(chunks, f, ensure_ascii=False, indent=2)
+    if not os.path.exists(DOMAIN_PATH):
+        raise FileNotFoundError(f"Missing file: {DOMAIN_PATH}")
 
-    print(f"RAG index created: {OUTPUT_FILE}")
-    print(f"Total chunks: {len(chunks)}")
+    guardrail_chunks = load_guardrail()
+    domain_catalog = load_domain_catalog()
+    domain_chunks = [domain_to_rag_chunk(d) for d in domain_catalog]
+
+    rag_index = guardrail_chunks + domain_chunks
+
+    with open(RAG_INDEX_PATH, "w", encoding="utf-8") as f:
+        json.dump(rag_index, f, ensure_ascii=False, indent=2)
+
+    with open(DOMAIN_CATALOG_PATH, "w", encoding="utf-8") as f:
+        json.dump(domain_catalog, f, ensure_ascii=False, indent=2)
+
+    with open(GUARDRAIL_CHUNKS_PATH, "w", encoding="utf-8") as f:
+        json.dump(guardrail_chunks, f, ensure_ascii=False, indent=2)
+
+    print("RAG index created:", RAG_INDEX_PATH)
+    print("Domain catalog created:", DOMAIN_CATALOG_PATH)
+    print("Guardrail chunks created:", GUARDRAIL_CHUNKS_PATH)
+    print("Guardrail chunks:", len(guardrail_chunks))
+    print("Domain records:", len(domain_catalog))
+    print("Total RAG chunks:", len(rag_index))
+
 
 if __name__ == "__main__":
     main()
