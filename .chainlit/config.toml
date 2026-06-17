@@ -95,9 +95,9 @@ reaction_on_message_received = false
 
 [UI]
 # Name of the assistant.
-name = "Assistant"
+name = "Pulse Fabric"
 
-# default_theme = "dark"
+# default_theme = "light"
 
 # Force a specific language for all users (e.g., "en-US", "he-IL", "fr-FR")
 # If not set, the browser's language will be used
@@ -174,5 +174,6 @@ default_avatar_file_url = ""
 #     url = "https://github.com/Chainlit/chainlit/issues"
 #     target = "_blank" (default)  # Optional: "_self", "_parent", "_top".
 
+
 [meta]
-generated_by = "2.11.1"
+generated_by = "Pulse Fabric MVP1"

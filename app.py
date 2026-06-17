@@ -660,6 +660,8 @@ Would you like to create another request?
 
 Please type **yes** or **no**.
 """).send()
+    
+    
 
 async def show_journey_menu():
     cl.user_session.set("user_request", None)
@@ -670,15 +672,58 @@ async def show_journey_menu():
     cl.user_session.set("missing_answers", {})
     cl.user_session.set("awaiting_next_request_answer", False)
 
-    elements = []
-    if os.path.exists(AGENT_IMAGE_PATH):
-        elements.append(cl.Image(name="Pulse Fabric Agents", path=AGENT_IMAGE_PATH, display="inline"))
+   # elements = []
+
+    # if os.path.exists(AGENT_IMAGE_PATH):
+     #    elements.append(
+      #       cl.Image(
+       #          name="Pulse Fabric Digital Teammates",
+        #        path=AGENT_IMAGE_PATH,
+         #        display="inline"
+          #   )
+       # )
 
     await cl.Message(
         content="""
-# 🔴 Pulse Fabric MVP
+# 🔴 Pulse Fabric
 
-**AI-powered Demand Governance & Request Maturation Demo**
+## AI Operating System for Data Lifecycle Management
+
+**Discover • Govern • Protect • Deliver**
+
+Pulse Fabric is an AI-driven control fabric that orchestrates data lifecycle decisions with human governance.
+
+---
+
+## 🎯 Control Tower
+
+| Capability | Target |
+|---|---|
+| **Current Manual Effort** | 26 MD |
+| **Request Maturity Acceleration** | 40–70% |
+| **Decision Accuracy Target** | 95%+ |
+| **Digital Teammates** | 6 AI Agents |
+
+---
+
+## 🧩 Digital Teammates
+
+| Agent | Role |
+|---|---|
+| 🦅 **The Scout** | Finds domain, owner and request type |
+| 🦉 **The Inspector** | Checks request maturity and missing fields |
+| 🐙 **The Scribe** | Generates BRD and analysis drafts |
+| 🐺 **The Strategist** | Calculates priority and business impact |
+| 🦏 **The Guardian** | Checks KVKK, security and approvals |
+| 🐬 **The Conductor** | Creates the final decision package |
+
+---
+
+## 🔄 Lifecycle Flow
+
+**Request → Discover → Govern → Protect → Human Approval → Deliver**
+
+---
 
 ## Select a Customer Journey
 
@@ -690,8 +735,10 @@ async def show_journey_menu():
 
 Please type **1**, **2**, **3**, or write your own data request.
 """,
-        elements=elements
     ).send()
+
+
+
 
 @cl.on_chat_start
 async def start():

@@ -1,0 +1,142 @@
+body {
+  background: linear-gradient(135deg, #ffffff 0%, #f7f7f7 45%, #fff1f1 100%) !important;
+  color: #1f1f1f !important;
+}
+
+#root {
+  background: transparent !important;
+}
+
+[class*="sidebar"],
+[class*="main"] {
+  background: transparent !important;
+}
+
+.pulse-hero {
+  padding: 28px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, #ffffff, #fff5f5);
+  border: 1px solid #ffd0d0;
+  box-shadow: 0 20px 50px rgba(230, 0, 0, 0.12);
+  margin-bottom: 24px;
+}
+
+.pulse-title {
+  font-size: 42px;
+  font-weight: 800;
+  color: #e60000;
+  margin-bottom: 6px;
+}
+
+.pulse-subtitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #222;
+}
+
+.pulse-tagline {
+  margin-top: 8px;
+  color: #666;
+  font-size: 15px;
+}
+
+.pulse-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin: 24px 0;
+}
+
+.pulse-kpi-card {
+  background: white;
+  border: 1px solid #ffd2d2;
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+}
+
+.pulse-kpi-value {
+  color: #e60000;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.pulse-kpi-label {
+  font-size: 13px;
+  color: #555;
+  margin-top: 4px;
+}
+
+.agent-gallery {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
+  margin: 24px 0;
+}
+
+.agent-card {
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 16px 10px;
+  text-align: center;
+  border: 1px solid #ffe0e0;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.06);
+}
+
+.agent-card img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  margin-bottom: 8px;
+}
+
+.agent-name {
+  font-weight: 800;
+  color: #222;
+  font-size: 14px;
+}
+
+.agent-role {
+  font-size: 11px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.pulse-section-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #222;
+  margin: 28px 0 12px 0;
+}
+
+.pulse-flow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
+
+.flow-step {
+  background: white;
+  border: 1px solid #ffd0d0;
+  border-radius: 18px;
+  padding: 14px 18px;
+  font-weight: 700;
+  color: #222;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.05);
+}
+
+.flow-arrow {
+  color: #e60000;
+  font-weight: 900;
+}
+
+.decision-card {
+  background: #ffffff;
+  border-left: 6px solid #e60000;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.07);
+  margin-top: 18px;
+}
