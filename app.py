@@ -267,66 +267,91 @@ def search_guardrail(user_request, top_k=5):
     return scored[:top_k]
 
 def guardian_agent(user_request, request_data):
-    guardrail_context = search_guardrail(user_request)
-    request_n = expand_query(user_request + " " + json.dumps(request_data, ensure_ascii=False))
+    guardrail_context = search_guardrail(user_request, top_k=5)
 
-    matched_rules = [
-    {
-        "rule_text": c.get("text", "")[:500],
-        "score": c.get("score", 0),
-        "match_reasons": c.get("match_reasons", [])
-    }
-    for c in guardrail_context
-]
+    context_text = "\n\n".join([
+        f"Guardrail Chunk {i+1}:\n{c.get('text', '')}"
+        for i, c in enumerate(guardrail_context)
+    ])
 
-    contains_pii = "No"
-    retention_risk = "No"
-    approval_required = "No"
-    risk_level = "LOW"
-    decision = "Auto Approve"
-    required_approval = "-"
-    reasoning = []
+    prompt = f"""
+You are the Guardian Agent of Pulse Fabric.
 
-    pii_terms = ["pii", "kvkk", "kisisel veri", "kişisel veri", "hassas veri", "tckn", "telefon", "phone", "msisdn", "location", "lokasyon"]
-    retention_terms = ["retention", "5 years", "5 year", "5 yil", "5 yıl", "historical", "archive", "saklama", "arsiv", "arşiv", "eski veri", "gecmis veri", "geçmiş veri"]
-    approval_terms = ["approval", "onay", "istisna", "mimari kurul", "veri mimarisi kurulu"]
+Your job is NOT to copy guardrail text.
+Your job is to interpret the retrieved governance guardrails and decide what governance action is required for the incoming data request.
+Decision policy:
+- If the request only asks to discover which platform, domain, owner or team contains the data, do NOT escalate to Architecture Committee.
+- For discovery/routing requests, required approval should be "Data Owner Review / Access Authorization Check".
+- Architecture Committee is required only if the request asks for a new platform, new architecture pattern, cross-platform data movement, exception to architecture standards, or non-standard data replication.
+- If PII is explicitly requested such as MSISDN, TCKN, phone number, identity number or location history, require KVKK / Privacy Approval + Security Review.
+- If historical data or retention period is mentioned, require Retention Policy Review.
+- Do not invent approvals that are not required by the request context.
+Use only the provided guardrail context and the user request.
 
-    if any(t in request_n for t in pii_terms):
-        contains_pii = "Yes"
-        risk_level = "HIGH"
-        decision = "Escalate"
-        approval_required = "KVKK / PII approval"
-        reasoning.append("PII/KVKK signal detected in request.")
+Return ONLY valid JSON with this schema:
 
-    if any(t in request_n for t in retention_terms):
-        retention_risk = "Yes"
-        risk_level = "HIGH"
-        if decision != "Escalate":
-            decision = "Needs Review"
-        approval_required = "Retention policy review"
-        reasoning.append("Historical / retention-sensitive data usage detected.")
+{{
+  "contains_pii": "Yes/No",
+  "retention_risk": "Yes/No",
+  "risk_level": "LOW/MEDIUM/HIGH",
+  "guardian_decision": "Auto Approve/Needs Review/Escalate",
+  "required_approval": "- or approval name",
+  "guardrail_reasoning": "short business-friendly explanation",
+  "applied_guardrail_summary": "short summary of which guardrail logic was applied"
+}}
 
-    if any(t in request_n for t in approval_terms):
-        approval_required = "Architecture / governance approval"
-        if decision == "Auto Approve":
-            decision = "Needs Review"
-        reasoning.append("Approval-related guardrail signal detected.")
+User Request:
+{user_request}
 
-    if not reasoning:
-        reasoning.append("No critical KVKK, PII or retention signal detected from guardrail search.")
+Structured Request Data:
+{json.dumps(request_data, ensure_ascii=False)}
+
+Retrieved Guardrail Context:
+{context_text}
+"""
+
+    try:
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a data governance decision agent. Produce concise, business-friendly governance decisions based on retrieved guardrail context."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.1,
+        )
+
+        raw = response.choices[0].message.content
+        decision_json = safe_json_loads(raw)
+
+    except Exception as e:
+        decision_json = {
+            "contains_pii": "Unknown",
+            "retention_risk": "Unknown",
+            "risk_level": "MEDIUM",
+            "guardian_decision": "Needs Review",
+            "required_approval": "Manual Governance Review",
+            "guardrail_reasoning": f"Guardian Agent could not complete LLM-based guardrail reasoning. Manual review is required. Error: {str(e)}",
+            "applied_guardrail_summary": "-"
+        }
 
     return {
-        "contains_pii": contains_pii,
-        "retention_risk": retention_risk,
-        "architecture_approval_required": approval_required,
-        "risk_level": risk_level,
-        "guardian_decision": decision,
-        "guardrail_reasoning": " ".join(reasoning),
-        "required_approval": approval_required,
-        "matched_guardrail_rules": matched_rules,
-        "guardrail_sources": [c.get("id", "guardrail") for c in guardrail_context]
+        "contains_pii": decision_json.get("contains_pii", "Unknown"),
+        "retention_risk": decision_json.get("retention_risk", "Unknown"),
+        "architecture_approval_required": decision_json.get("required_approval", "-"),
+        "risk_level": decision_json.get("risk_level", "MEDIUM"),
+        "guardian_decision": decision_json.get("guardian_decision", "Needs Review"),
+        "guardrail_reasoning": decision_json.get("guardrail_reasoning", "-"),
+        "required_approval": decision_json.get("required_approval", "-"),
+        "matched_guardrail_rules": [],
+        "guardrail_sources": [c.get("id", "guardrail") for c in guardrail_context],
+        "applied_guardrail_summary": decision_json.get("applied_guardrail_summary", "-")
     }
-
 
 def get_missing_fields(data):
     return [k for k in REQUIRED_FIELDS if is_empty(data.get(k))]
@@ -605,8 +630,11 @@ def render_result(agent_result, user_request):
     md += "## 🦅 Scout Domain Candidates\n"
     md += "\n".join(candidate_lines) if candidate_lines else "-"
     md += "\n\n---\n"
-    md += "## 🦏 Guardian Guardrail Sources\n"
-    md += "\n".join(guardrail_lines) if guardrail_lines else "-"
+    md += "## 🦏 Guardian Decision Summary\n\n"
+    md += f"**Decision:** {guardian.get('guardian_decision', '-')}\n\n"
+    md += f"**Risk Level:** {guardian.get('risk_level', '-')}\n\n"
+    md += f"**Required Approval:** {guardian.get('required_approval', '-')}\n\n"
+    md += f"**Reasoning:** {guardian.get('guardrail_reasoning', '-')}\n"
     md += "\n"
 
     return md
@@ -661,7 +689,28 @@ Would you like to create another request?
 Please type **yes** or **no**.
 """).send()
     
-    
+async def show_simple_journey_menu():
+    cl.user_session.set("user_request", None)
+    cl.user_session.set("agent_result", None)
+    cl.user_session.set("awaiting_missing_fields", False)
+    cl.user_session.set("missing_fields", [])
+    cl.user_session.set("missing_index", 0)
+    cl.user_session.set("missing_answers", {})
+    cl.user_session.set("awaiting_next_request_answer", False)
+
+    await cl.Message(
+        content="""
+## Select a Customer Journey
+
+| No | Customer Journey |
+|---|---|
+| **1** | KVKK / PII Risky Request |
+| **2** | Expired Retention Data Request |
+| **3** | Existing Data Discovery and Routing |
+
+Please type **1**, **2**, **3**, or write your own data request.
+"""
+    ).send()
 
 async def show_journey_menu():
     cl.user_session.set("user_request", None)
@@ -672,8 +721,7 @@ async def show_journey_menu():
     cl.user_session.set("missing_answers", {})
     cl.user_session.set("awaiting_next_request_answer", False)
 
-   # elements = []
-
+  
     # if os.path.exists(AGENT_IMAGE_PATH):
      #    elements.append(
       #       cl.Image(
@@ -735,9 +783,10 @@ Pulse Fabric is an AI-driven control fabric that orchestrates data lifecycle dec
 
 Please type **1**, **2**, **3**, or write your own data request.
 """,
+
     ).send()
 
-
+    
 
 
 @cl.on_chat_start
@@ -754,7 +803,7 @@ async def main(message: cl.Message):
         answer = user_input.lower()
 
         if answer in ["yes", "y", "evet", "e"]:
-            await show_journey_menu()
+            await show_simple_journey_menu()
             return
 
         if answer in ["no", "n", "hayır", "hayir", "h"]:

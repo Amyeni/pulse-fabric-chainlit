@@ -4,7 +4,7 @@ from docx import Document
 import pandas as pd
 
 DATA_DIR = "data"
-GUARDRAIL_PATH = os.path.join(DATA_DIR, "guardrail.docx")
+GUARDRAIL_PATH = os.path.join(DATA_DIR, "guardrail_en.docx")
 DOMAIN_PATH = os.path.join(DATA_DIR, "data_domains.xlsx")
 
 RAG_INDEX_PATH = "rag_index.json"
